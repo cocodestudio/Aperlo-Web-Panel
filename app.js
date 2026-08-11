@@ -1651,12 +1651,16 @@ Output strictly in JSON format matching this structure:
 
   document.getElementById("btn-create-template").addEventListener("click", createNewTemplate);
   
-  document.getElementById("btn-save-draft").addEventListener("click", () => {
-    saveTemplateDraft();
-    showToast("Template draft saved locally");
-  });
+  if (document.getElementById("btn-save-draft")) {
+    document.getElementById("btn-save-draft").addEventListener("click", () => {
+      saveTemplateDraft();
+      showToast("Template draft saved locally");
+    });
+  }
 
-  document.getElementById("btn-push-firestore").addEventListener("click", pushTemplateToFirestore);
+  if (document.getElementById("btn-push-firestore")) {
+    document.getElementById("btn-push-firestore").addEventListener("click", pushTemplateToFirestore);
+  }
 
   // Category filter chips binding
   const filterChips = document.querySelectorAll(".filter-chip");
@@ -1669,37 +1673,43 @@ Output strictly in JSON format matching this structure:
   });
 
   // Zoom Controls
-  document.getElementById("btn-zoom-in").addEventListener("click", () => {
-    canvasScale = Math.min(1.5, canvasScale + 0.1);
-    updateCanvasZoom();
-  });
+  if (document.getElementById("btn-zoom-in")) {
+    document.getElementById("btn-zoom-in").addEventListener("click", () => {
+      canvasScale = Math.min(1.5, canvasScale + 0.1);
+      updateCanvasZoom();
+    });
+  }
 
-  document.getElementById("btn-zoom-out").addEventListener("click", () => {
-    canvasScale = Math.max(0.4, canvasScale - 0.1);
-    updateCanvasZoom();
-  });
+  if (document.getElementById("btn-zoom-out")) {
+    document.getElementById("btn-zoom-out").addEventListener("click", () => {
+      canvasScale = Math.max(0.4, canvasScale - 0.1);
+      updateCanvasZoom();
+    });
+  }
 
   // Quick Alignment bindings
-  document.getElementById("btn-align-left").addEventListener("click", () => alignSelectedLayer('left'));
-  document.getElementById("btn-align-center-h").addEventListener("click", () => alignSelectedLayer('center-h'));
-  document.getElementById("btn-align-right").addEventListener("click", () => alignSelectedLayer('right'));
-  document.getElementById("btn-align-top").addEventListener("click", () => alignSelectedLayer('top'));
-  document.getElementById("btn-align-center-v").addEventListener("click", () => alignSelectedLayer('center-v'));
-  document.getElementById("btn-align-bottom").addEventListener("click", () => alignSelectedLayer('bottom'));
+  if (document.getElementById("btn-align-left")) {
+    document.getElementById("btn-align-left").addEventListener("click", () => alignSelectedLayer('left'));
+    document.getElementById("btn-align-center-h").addEventListener("click", () => alignSelectedLayer('center-h'));
+    document.getElementById("btn-align-right").addEventListener("click", () => alignSelectedLayer('right'));
+    document.getElementById("btn-align-top").addEventListener("click", () => alignSelectedLayer('top'));
+    document.getElementById("btn-align-center-v").addEventListener("click", () => alignSelectedLayer('center-v'));
+    document.getElementById("btn-align-bottom").addEventListener("click", () => alignSelectedLayer('bottom'));
 
-  // Duplicate active layer binding
-  document.getElementById("btn-duplicate-selected-layer").addEventListener("click", () => {
-    if (selectedLayerIndex >= 0) {
-      duplicateLayer(selectedLayerIndex);
-    }
-  });
+    // Duplicate active layer binding
+    document.getElementById("btn-duplicate-selected-layer").addEventListener("click", () => {
+      if (selectedLayerIndex >= 0) {
+        duplicateLayer(selectedLayerIndex);
+      }
+    });
 
-  // Delete active layer binding
-  document.getElementById("btn-delete-selected-layer").addEventListener("click", () => {
-    if (selectedLayerIndex >= 0) {
-      deleteLayer(selectedLayerIndex);
-    }
-  });
+    // Delete active layer binding
+    document.getElementById("btn-delete-selected-layer").addEventListener("click", () => {
+      if (selectedLayerIndex >= 0) {
+        deleteLayer(selectedLayerIndex);
+      }
+    });
+  }
 
   // Add Elements events
   document.querySelectorAll(".add-btn").forEach(btn => {
@@ -1715,48 +1725,53 @@ Output strictly in JSON format matching this structure:
   bindSlider("slider-val-width", "label-val-width", "width");
   bindSlider("slider-val-height", "label-val-height", "height");
   
-  document.getElementById("slider-val-rotation").addEventListener("input", (e) => {
-    const val = parseInt(e.target.value);
-    document.getElementById("label-val-rotation").textContent = `${val}°`;
-    updateSelectedLayerField("rotation", val);
-  });
+  // Position sliders listeners (Editor only)
+  if (document.getElementById("slider-val-rotation")) {
+    document.getElementById("slider-val-rotation").addEventListener("input", (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById("label-val-rotation").textContent = `${val}°`;
+      updateSelectedLayerField("rotation", val);
+    });
 
-  document.getElementById("slider-val-opacity").addEventListener("input", (e) => {
-    const val = parseFloat(e.target.value);
-    document.getElementById("label-val-opacity").textContent = `${Math.round(val * 100)}%`;
-    updateSelectedLayerField("opacity", val);
-  });
+    document.getElementById("slider-val-opacity").addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      document.getElementById("label-val-opacity").textContent = `${Math.round(val * 100)}%`;
+      updateSelectedLayerField("opacity", val);
+    });
+  }
 
   // Background control handlers
-  document.getElementById("select-bg-type").addEventListener("change", (e) => {
-    const val = e.target.value;
-    const bgLayer = currentTemplate.layout.find(l => l.type === 'background');
-    
-    // Clean old formats
-    delete bgLayer.color;
-    delete bgLayer.gradient;
-    delete bgLayer.begin;
-    delete bgLayer.end;
-    delete bgLayer.split_at;
-    delete bgLayer.top_color;
-    delete bgLayer.bottom_color;
+  if (document.getElementById("select-bg-type")) {
+    document.getElementById("select-bg-type").addEventListener("change", (e) => {
+      const val = e.target.value;
+      const bgLayer = currentTemplate.layout.find(l => l.type === 'background');
+      
+      // Clean old formats
+      delete bgLayer.color;
+      delete bgLayer.gradient;
+      delete bgLayer.begin;
+      delete bgLayer.end;
+      delete bgLayer.split_at;
+      delete bgLayer.top_color;
+      delete bgLayer.bottom_color;
 
-    if (val === 'solid') {
-      bgLayer.color = "#FAF9F6";
-    } else if (val === 'linear') {
-      bgLayer.gradient = ["#0082FF", "#0040A3"];
-      bgLayer.begin = "topCenter";
-      bgLayer.end = "bottomCenter";
-    } else if (val === 'split') {
-      bgLayer.split_at = 0.5;
-      bgLayer.top_color = "#FAF9F6";
-      bgLayer.bottom_color = "#F5F7F5";
-    }
-    
-    setupBackgroundPropsForm(bgLayer);
-    renderPreview();
-    saveTemplateDraft();
-  });
+      if (val === 'solid') {
+        bgLayer.color = "#FAF9F6";
+      } else if (val === 'linear') {
+        bgLayer.gradient = ["#0082FF", "#0040A3"];
+        bgLayer.begin = "topCenter";
+        bgLayer.end = "bottomCenter";
+      } else if (val === 'split') {
+        bgLayer.split_at = 0.5;
+        bgLayer.top_color = "#FAF9F6";
+        bgLayer.bottom_color = "#F5F7F5";
+      }
+      
+      setupBackgroundPropsForm(bgLayer);
+      renderPreview();
+      saveTemplateDraft();
+    });
+  }
 
   // Color Pickers (Background)
   bindColorInput("picker-bg-solid", "text-bg-solid", (color) => {
@@ -1777,17 +1792,19 @@ Output strictly in JSON format matching this structure:
     renderPreview();
   });
 
-  document.getElementById("select-bg-grad-begin").addEventListener("change", (e) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
-    bg.begin = e.target.value;
-    renderPreview();
-  });
+  if (document.getElementById("select-bg-grad-begin")) {
+    document.getElementById("select-bg-grad-begin").addEventListener("change", (e) => {
+      const bg = currentTemplate.layout.find(l => l.type === 'background');
+      bg.begin = e.target.value;
+      renderPreview();
+    });
 
-  document.getElementById("select-bg-grad-end-dir").addEventListener("change", (e) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
-    bg.end = e.target.value;
-    renderPreview();
-  });
+    document.getElementById("select-bg-grad-end-dir").addEventListener("change", (e) => {
+      const bg = currentTemplate.layout.find(l => l.type === 'background');
+      bg.end = e.target.value;
+      renderPreview();
+    });
+  }
 
   bindColorInput("picker-bg-split-top", "text-bg-split-top", (color) => {
     const bg = currentTemplate.layout.find(l => l.type === 'background');
@@ -1804,60 +1821,47 @@ Output strictly in JSON format matching this structure:
   bindSlider("slider-val-bg-split-at", "label-val-bg-split-at", "split_at", true);
 
   // Text Property Handlers
-  document.getElementById("textarea-text-content").addEventListener("input", (e) => {
-    updateSelectedLayerField("content", e.target.value);
-  });
-
-  document.querySelectorAll(".helper-badge").forEach(badge => {
-    badge.addEventListener("click", () => {
-      const textarea = document.getElementById("textarea-text-content");
-      const insertText = badge.getAttribute("data-insert");
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      
-      textarea.value = textarea.value.substring(0, start) + insertText + textarea.value.substring(end);
-      textarea.focus();
-      updateSelectedLayerField("content", textarea.value);
+  if (document.getElementById("textarea-text-content")) {
+    document.getElementById("textarea-text-content").addEventListener("input", (e) => {
+      updateSelectedLayerField("content", e.target.value);
     });
-  });
 
-  document.getElementById("select-text-font").addEventListener("change", (e) => {
-    ensureFontLoaded(e.target.value);
-    updateSelectedLayerField("font", e.target.value);
-  });
+    document.getElementById("select-text-font").addEventListener("change", (e) => {
+      ensureFontLoaded(e.target.value);
+      updateSelectedLayerField("font", e.target.value);
+    });
 
-  bindColorInput("picker-text-color", "text-text-color", (color) => {
-    updateSelectedLayerField("color", color);
-  });
+    document.getElementById("select-text-align").addEventListener("change", (e) => {
+      updateSelectedLayerField("align", e.target.value);
+    });
 
-  document.getElementById("select-text-align").addEventListener("change", (e) => {
-    updateSelectedLayerField("align", e.target.value);
-  });
-
-  document.getElementById("select-text-weight").addEventListener("change", (e) => {
-    const val = e.target.value;
-    const l = currentTemplate.layout[selectedLayerIndex];
-    if (val === 'w700') {
-      l.bold = true;
-      delete l.weight;
-    } else {
-      l.bold = false;
-      l.weight = val;
-    }
-    renderPreview();
-    saveTemplateDraft();
-  });
+    document.getElementById("select-text-weight").addEventListener("change", (e) => {
+      const val = e.target.value;
+      const l = currentTemplate.layout[selectedLayerIndex];
+      if (val === 'w700') {
+        l.bold = true;
+        delete l.weight;
+      } else {
+        l.bold = false;
+        l.weight = val;
+      }
+      renderPreview();
+      saveTemplateDraft();
+    });
+  }
 
   bindSlider("slider-val-font-size", "label-val-font-size", "font_size");
   bindSlider("slider-val-line-height", "label-val-line-height", "line_height");
   bindSlider("slider-val-letter-spacing", "label-val-letter-spacing", "letter_spacing");
 
   // Shape Property Handlers
-  document.getElementById("select-shape-type").addEventListener("change", (e) => {
-    const val = e.target.value;
-    updateSelectedLayerField("shape_type", val);
-    toggleShapeControlGroups(val, currentTemplate.layout[selectedLayerIndex]);
-  });
+  if (document.getElementById("select-shape-type")) {
+    document.getElementById("select-shape-type").addEventListener("change", (e) => {
+      const val = e.target.value;
+      updateSelectedLayerField("shape_type", val);
+      toggleShapeControlGroups(val, currentTemplate.layout[selectedLayerIndex]);
+    });
+  }
 
   bindColorInput("picker-shape-color", "text-shape-color", (color) => {
     updateSelectedLayerField("color", color);
@@ -1888,9 +1892,15 @@ Output strictly in JSON format matching this structure:
   bindSlider("slider-val-points", "label-val-points", "points");
 
   // Phone Mockup Property Handlers
-  document.getElementById("select-phone-style").addEventListener("change", (e) => {
-    updateSelectedLayerField("style", e.target.value);
-  });
+  if (document.getElementById("select-phone-style")) {
+    document.getElementById("select-phone-style").addEventListener("change", (e) => {
+      updateSelectedLayerField("style", e.target.value);
+    });
+
+    document.getElementById("checkbox-phone-shadow").addEventListener("change", (e) => {
+      updateSelectedLayerField("shadow", e.target.checked);
+    });
+  }
 
   bindColorInput("picker-phone-frame", "text-phone-frame", (color) => {
     updateSelectedLayerField("frame_color", color);
@@ -1898,19 +1908,17 @@ Output strictly in JSON format matching this structure:
 
   bindSlider("slider-val-phone-bezel", "label-val-phone-bezel", "bezel");
   bindSlider("slider-val-phone-radius", "label-val-phone-radius", "radius");
-  
-  document.getElementById("checkbox-phone-shadow").addEventListener("change", (e) => {
-    updateSelectedLayerField("shadow", e.target.checked);
-  });
 
   // Badge Property Handlers
-  document.getElementById("input-badge-content").addEventListener("input", (e) => {
-    updateSelectedLayerField("content", e.target.value);
-  });
+  if (document.getElementById("input-badge-content")) {
+    document.getElementById("input-badge-content").addEventListener("input", (e) => {
+      updateSelectedLayerField("content", e.target.value);
+    });
 
-  document.getElementById("input-badge-icon").addEventListener("input", (e) => {
-    updateSelectedLayerField("icon", e.target.value);
-  });
+    document.getElementById("input-badge-icon").addEventListener("input", (e) => {
+      updateSelectedLayerField("icon", e.target.value);
+    });
+  }
 
   bindColorInput("picker-badge-bg", "text-badge-bg", (color) => {
     updateSelectedLayerField("color", color);
@@ -1921,13 +1929,15 @@ Output strictly in JSON format matching this structure:
   });
 
   // Feature Row Property Handlers
-  document.getElementById("input-feature-content").addEventListener("input", (e) => {
-    updateSelectedLayerField("content", e.target.value);
-  });
+  if (document.getElementById("input-feature-content")) {
+    document.getElementById("input-feature-content").addEventListener("input", (e) => {
+      updateSelectedLayerField("content", e.target.value);
+    });
 
-  document.getElementById("input-feature-icon").addEventListener("input", (e) => {
-    updateSelectedLayerField("icon", e.target.value);
-  });
+    document.getElementById("input-feature-icon").addEventListener("input", (e) => {
+      updateSelectedLayerField("icon", e.target.value);
+    });
+  }
 
   bindColorInput("picker-feature-icon-bg", "text-feature-icon-bg", (color) => {
     updateSelectedLayerField("icon_bg", color);
@@ -1944,12 +1954,14 @@ Output strictly in JSON format matching this structure:
     updateSelectedLayerField("color", color);
   });
 
-  document.getElementById("slider-val-frosted-opacity").addEventListener("input", (e) => {
-    const val = parseFloat(e.target.value);
-    document.getElementById("label-val-frosted-opacity").textContent = `${Math.round(val * 100)}%`;
-    updateSelectedLayerField("opacity", val);
-  });
-
+  if (document.getElementById("slider-val-frosted-opacity")) {
+    document.getElementById("slider-val-frosted-opacity").addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      document.getElementById("label-val-frosted-opacity").textContent = `${Math.round(val * 100)}%`;
+      updateSelectedLayerField("opacity", val);
+    });
+  }
+  
   bindColorInput("picker-frosted-border", "text-frosted-border", (color) => {
     updateSelectedLayerField("border_color", color);
   });
@@ -1971,6 +1983,7 @@ function updateSelectedLayerField(field, value) {
 function bindSlider(sliderId, labelId, fieldKey, isGlobalBg = false) {
   const slider = document.getElementById(sliderId);
   const label = document.getElementById(labelId);
+  if (!slider || !label) return;
   
   slider.addEventListener("input", (e) => {
     const val = parseFloat(e.target.value);
@@ -1990,6 +2003,7 @@ function bindSlider(sliderId, labelId, fieldKey, isGlobalBg = false) {
 function bindColorInput(pickerId, textId, updateCallback) {
   const picker = document.getElementById(pickerId);
   const text = document.getElementById(textId);
+  if (!picker || !text) return;
 
   picker.addEventListener("input", (e) => {
     const color = e.target.value;
