@@ -1,473 +1,38 @@
-// ═══════════════════════════════════════════════════════════
-// Aperlo Web Panel - App Logic
-// ═══════════════════════════════════════════════════════════
+import { state } from './state.js';
+import { db, storage, auth, ensureFontLoaded, showToast, showLoading, hideLoading, encryptTemplateData, ALIGNMENT_MAP, showLoginModal, hideLoginModal, populateFontDropdowns } from './shared.js';
+import { loadTemplates } from './dashboard.js';
 
-// Firebase Configuration (extracted from local google-services.json)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
-};
 
-// Initialize Firebase compat
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const storage = firebase.storage();
-const auth = firebase.auth();
 
-// Global App State
-let templates = [];
-let currentTemplate = null;
-let selectedLayerIndex = -1; // -1: none, -2: background, >=0: layer index
-let canvasScale = 0.8;
-let isDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let dragInitialX = 0;
-let dragInitialY = 0;
-let currentUser = null;
-let currentTab = "cloud"; // "cloud" or "local"
-
-// ═══════════════════════════════════════════════════════════
-// ENCRYPTION LOGIC
-// ═══════════════════════════════════════════════════════════
-const SECRET_KEY = CryptoJS.enc.Utf8.parse(import.meta.env.VITE_SECRET_KEY);
-
-function encryptTemplateData(dataObj) {
-  const jsonStr = JSON.stringify(dataObj);
-  const iv = CryptoJS.lib.WordArray.random(16);
-  const encrypted = CryptoJS.AES.encrypt(jsonStr, SECRET_KEY, {
-    iv: iv,
-    mode: CryptoJS.mode.CBC,
-    padding: CryptoJS.pad.Pkcs7
-  });
-  return CryptoJS.enc.Base64.stringify(iv) + ':' + encrypted.toString();
-}
-
-function decryptTemplateData(encryptedString) {
-  try {
-    const parts = encryptedString.split(':');
-    if (parts.length !== 2) return null;
-    const iv = CryptoJS.enc.Base64.parse(parts[0]);
-    const ciphertext = parts[1];
-    const decrypted = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY, {
-      iv: iv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7
-    });
-    return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
-  } catch (e) {
-    console.error("Decryption exception:", e);
-    return null;
-  }
-}
-
-// Available Google Fonts (premium curated font selection)
-let GOOGLE_FONTS = [
-  "Outfit", "DM Sans", "Syne", "Inter", "Montserrat", "Poppins", 
-  "Nunito", "Playfair Display", "Manrope", "Lato", "Caveat", "Merriweather"
-];
-
-// Async fetch complete Google Fonts list
-fetch('https://raw.githubusercontent.com/jonathantneal/google-fonts-complete/master/google-fonts.json')
-  .then(res => res.json())
-  .then(data => {
-    const allFonts = Object.keys(data);
-    if (allFonts.length > 0) {
-      GOOGLE_FONTS = allFonts;
-      populateFontDropdowns();
-    }
-  }).catch(e => console.error("Error fetching font list:", e));
-
-// Gradient direction mappers to CSS linear-gradient values
-const ALIGNMENT_MAP = {
-  'topCenter': 'to bottom',
-  'bottomCenter': 'to top',
-  'topLeft': 'to bottom right',
-  'bottomRight': 'to top left',
-  'centerLeft': 'to right',
-  'centerRight': 'to left',
-  'bottomLeft': 'to top right',
-  'topRight': 'to bottom left'
-};
-
-// ═══════════════════════════════════════════════════════════
-// INITIALIZATION & AUTHENTICATION
-// ═══════════════════════════════════════════════════════════
-
-document.addEventListener("DOMContentLoaded", () => {
-  initApp();
-});
-
-function initApp() {
-  // Setup standard Google Font selectors
-  populateFontDropdowns();
-  
-  // Load Lucide Icons
-  lucide.createIcons();
-
-  // Listen to Auth State
-  auth.onAuthStateChanged((user) => {
-    const isEditor = window.location.pathname.includes('editor.html');
-    if (user) {
-      currentUser = user;
-      const btnDashboard = document.getElementById("btn-dashboard-view");
-      const btnCreate = document.getElementById("btn-create-template");
-      if (btnDashboard) btnDashboard.classList.remove("hidden");
-      if (btnCreate) btnCreate.classList.remove("hidden");
-      hideLoginModal();
-      
-      if (isEditor) {
-        initEditorPage();
-      } else {
-        loadTemplates();
-      }
-    } else {
-      currentUser = null;
-      const btnDashboard = document.getElementById("btn-dashboard-view");
-      const btnCreate = document.getElementById("btn-create-template");
-      if (btnDashboard) btnDashboard.classList.add("hidden");
-      if (btnCreate) btnCreate.classList.add("hidden");
-      showLoginModal();
-    }
-  });
-
-  // Setup Event Listeners
-  setupEventListeners();
-}
-
-function showLoginModal() {
-  // Check if modal already exists
-  if (document.getElementById("auth-modal")) return;
-
-  const authOverlay = document.createElement("div");
-  authOverlay.id = "auth-modal";
-  authOverlay.className = "loading-overlay";
-  authOverlay.innerHTML = `
-    <div class="loader-card" style="width: 360px;">
-      <img src="logo.png" class="logo-icon" style="margin: 0 auto 16px; display: block; width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
-      <h3 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 6px;">Developer Studio Login</h3>
-      <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px;">Log in to create and edit Aperlo templates</p>
-      
-      <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px; text-align: left; width: 100%;">
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="text" id="auth-email" value="mastereditor8780@gmail.com" required placeholder="name@domain.com">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="auth-password" required placeholder="••••••••" style="font-family: var(--font-body); font-size: 13px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); outline: none;">
-        </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 8px; width: 100%;">Sign In</button>
-      </form>
-      <div id="auth-error" style="color: var(--color-destructive); font-size: 12px; font-weight: 700; margin-top: 12px; display: none;"></div>
-    </div>
-  `;
-  document.body.appendChild(authOverlay);
-
-  // Focus password
-  document.getElementById("auth-password").focus();
-
-  document.getElementById("auth-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-password").value;
-    const errorEl = document.getElementById("auth-error");
-    
-    errorEl.style.display = "none";
-    
-    auth.signInWithEmailAndPassword(email, password)
-      .catch(err => {
-        errorEl.textContent = err.message;
-        errorEl.style.display = "block";
-      });
-  });
-}
-
-function hideLoginModal() {
-  const modal = document.getElementById("auth-modal");
-  if (modal) modal.remove();
-}
-
-function populateFontDropdowns() {
-  let datalist = document.getElementById("google-fonts-list");
-  if (!datalist) {
-    datalist = document.createElement("datalist");
-    datalist.id = "google-fonts-list";
-    document.body.appendChild(datalist);
-  }
-  datalist.innerHTML = "";
-  GOOGLE_FONTS.forEach(font => {
-    const option = document.createElement("option");
-    option.value = font;
-    datalist.appendChild(option);
-  });
-}
-
-// Ensure Google Font stylesheet is appended dynamically to head
-function ensureFontLoaded(fontName) {
-  if (!fontName) return;
-  const fontId = `gfont-${fontName.replace(/\s+/g, '-').toLowerCase()}`;
-  if (document.getElementById(fontId)) return;
-  
-  const link = document.createElement('link');
-  link.id = fontId;
-  link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}&display=swap`;
-  document.head.appendChild(link);
-}
-
-// Toast alerts helper
-function showToast(message, isError = false) {
-  const wrapper = document.getElementById("toast-wrapper");
-  const toast = document.createElement("div");
-  toast.className = `toast ${isError ? 'toast-error' : ''}`;
-  toast.innerHTML = `
-    <i data-lucide="${isError ? 'alert-circle' : 'check-circle-2'}" style="color: ${isError ? 'var(--color-destructive)' : 'var(--color-primary)'}"></i>
-    <span class="toast-message">${message}</span>
-    <button class="toast-close"><i data-lucide="x"></i></button>
-  `;
-  wrapper.appendChild(toast);
-  lucide.createIcons();
-  
-  // Auto remove after 4 seconds
-  const autoTimeout = setTimeout(() => {
-    toast.remove();
-  }, 4000);
-
-  toast.querySelector(".toast-close").addEventListener("click", () => {
-    clearTimeout(autoTimeout);
-    toast.remove();
-  });
-}
-
-function showLoading(title, desc) {
-  const overlay = document.getElementById("app-loading-overlay");
-  document.getElementById("loading-overlay-title").textContent = title;
-  document.getElementById("loading-overlay-desc").textContent = desc;
-  overlay.classList.remove("hidden");
-}
-
-function hideLoading() {
-  document.getElementById("app-loading-overlay").classList.add("hidden");
-}
-
-// ═══════════════════════════════════════════════════════════
-// DATA FETCHING & HOME DASHBOARD
-// ═══════════════════════════════════════════════════════════
-
-function loadLocalDrafts() {
-  const localDrafts = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith("fk_draft_")) {
-      try {
-        const draft = JSON.parse(localStorage.getItem(key));
-        if (draft && draft.id) {
-          localDrafts.push(draft);
-        }
-      } catch (e) {
-        console.error("Error parsing local draft " + key, e);
-      }
-    }
-  }
-  return localDrafts;
-}
-
-function loadTemplates() {
-  if (currentTab === 'local') {
-    renderTemplatesGrid("All");
-    return;
-  }
-
-  const grid = document.getElementById("dashboard-template-grid");
-  
-  // Show skeletons
-  grid.innerHTML = `
-    <div class="skeleton-card">
-      <div class="skeleton-thumb"></div>
-      <div class="skeleton-text"></div>
-      <div class="skeleton-text-short"></div>
-    </div>
-    <div class="skeleton-card">
-      <div class="skeleton-thumb"></div>
-      <div class="skeleton-text"></div>
-      <div class="skeleton-text-short"></div>
-    </div>
-    <div class="skeleton-card">
-      <div class="skeleton-thumb"></div>
-      <div class="skeleton-text"></div>
-      <div class="skeleton-text-short"></div>
-    </div>
-  `;
-
-  db.collection("templates").get()
-    .then((querySnapshot) => {
-      templates = [];
-      querySnapshot.forEach((doc) => {
-        const rawData = doc.data();
-        if (rawData.encryptedData) {
-          const decrypted = decryptTemplateData(rawData.encryptedData);
-          if (decrypted) {
-            templates.push({ id: doc.id, category: rawData.category, thumbnailUrl: rawData.thumbnailUrl, ...decrypted });
-          } else {
-            console.error("Failed to decrypt template:", doc.id);
-          }
-        } else {
-          templates.push({ id: doc.id, ...rawData });
-        }
-      });
-      renderTemplatesGrid("All");
-    })
-    .catch((error) => {
-      showToast("Error loading templates: " + error.message, true);
-    });
-}
-
-function renderTemplatesGrid(categoryFilter = "All") {
-  const grid = document.getElementById("dashboard-template-grid");
-  grid.innerHTML = "";
-
-  const listToFilter = currentTab === 'cloud' ? templates : loadLocalDrafts();
-
-  const filtered = categoryFilter === "All" 
-    ? listToFilter 
-    : listToFilter.filter(t => t.category === categoryFilter);
-
-  if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--color-text-muted);">
-        <i data-lucide="folder-open" style="width: 48px; height: 48px; margin-bottom: 12px; stroke-width: 1.5;"></i>
-        <h4>No templates found</h4>
-        <p>There are no templates in category "${categoryFilter}"</p>
-      </div>
-    `;
-    lucide.createIcons();
-    return;
-  }
-
-  filtered.forEach(template => {
-    const card = document.createElement("div");
-    card.className = "template-card";
-    card.style.position = "relative"; // dynamic delete button bounds
-    card.addEventListener("click", () => openEditor(template));
-
-    // Fallback thumbnail visual if none exists
-    const hasThumb = template.thumbnailUrl && template.thumbnailUrl.startsWith("http");
-    const thumbHtml = hasThumb 
-      ? `<img src="${template.thumbnailUrl}" alt="${template.name}" loading="lazy">` 
-      : `<div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(135deg, #1A6B4A, #124B33); color:white; font-family:var(--font-display); padding:20px; text-align:center;">
-          <div style="font-size:20px; font-weight:800; margin-bottom:8px;">${template.name}</div>
-          <span style="font-size:11px; opacity:0.7;">No Thumbnail Uploaded</span>
-         </div>`;
-
-    const localLabel = currentTab === 'local' 
-      ? `<span class="card-category" style="background-color: var(--color-accent); color: white; margin-left: 6px;">Draft</span>`
-      : '';
-
-    card.innerHTML = `
-      <button class="card-delete-btn" title="Delete Template"><i data-lucide="trash-2" style="width:14px; height:14px;"></i></button>
-      <div class="card-thumbnail">
-        ${thumbHtml}
-      </div>
-      <div class="card-info">
-        <div class="card-meta">
-          <div>
-            <span class="card-category">${template.category || "Minimal"}</span>
-            ${localLabel}
-          </div>
-          <span class="card-slots"><i data-lucide="smartphone" style="width: 12px; height: 12px;"></i> ${template.screenshotSlots || 1} Device</span>
-        </div>
-        <h4 class="card-title">${template.name}</h4>
-      </div>
-    `;
-
-    // Bind delete click event handler
-    card.querySelector(".card-delete-btn").addEventListener("click", (e) => {
-      e.stopPropagation(); // prevent opening editor!
-      deleteTemplate(template);
-    });
-
-    grid.appendChild(card);
-  });
-  
-  lucide.createIcons();
-}
-
-function deleteTemplate(template) {
-  const confirmMsg = currentTab === 'cloud'
-    ? `Are you sure you want to permanently delete "${template.name}" from Firestore and Storage? This cannot be undone.`
-    : `Are you sure you want to delete local draft "${template.name}"?`;
-
-  if (!confirm(confirmMsg)) return;
-
-  if (currentTab === 'local') {
-    localStorage.removeItem(`fk_draft_${template.id}`);
-    showToast(`Deleted local draft "${template.name}"`);
-    loadTemplates();
-  } else {
-    showLoading("Deleting Template...", "Deleting document and asset references from Firebase...");
-    
-    // 1. Delete thumbnail file from storage
-    const thumbRef = storage.ref().child(`templates/${template.id}/thumbnail.png`);
-    
-    thumbRef.delete()
-      .then(() => {
-        // Thumbnail deleted successfully from Storage, now delete document from Firestore
-        return db.collection("templates").doc(template.id).delete();
-      })
-      .catch((err) => {
-        // If the thumbnail didn't exist or failed, log and proceed to delete firestore document anyway
-        console.warn("Storage thumbnail delete failed or didn't exist:", err.message);
-        return db.collection("templates").doc(template.id).delete();
-      })
-      .then(() => {
-        hideLoading();
-        showToast(`Permanently deleted template "${template.name}"`);
-        loadTemplates();
-      })
-      .catch(err => {
-        hideLoading();
-        showToast("Error deleting template: " + err.message, true);
-      });
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// EDITOR ACTIONS & STATE MANAGEMENT
-// ═══════════════════════════════════════════════════════════
-
-function openEditor(template) {
+export function openEditor(template) {
   sessionStorage.setItem('fk_current_editing_template', JSON.stringify(template));
   window.location.href = 'editor.html';
 }
 
-function initEditorPage() {
+export function initEditorPage() {
   const tplStr = sessionStorage.getItem('fk_current_editing_template');
   if (!tplStr) {
     window.location.href = 'index.html';
     return;
   }
   
-  currentTemplate = JSON.parse(tplStr);
-  selectedLayerIndex = -1;
+  state.currentTemplate = JSON.parse(tplStr);
+  state.selectedLayerIndex = -1;
 
   // Populate toolbar & metadata inputs
-  document.getElementById("input-template-name").value = currentTemplate.name;
-  document.getElementById("badge-template-category").textContent = currentTemplate.category;
+  document.getElementById("input-template-name").value = state.currentTemplate.name;
+  document.getElementById("badge-template-category").textContent = state.currentTemplate.category;
   
-  document.getElementById("select-meta-category").value = currentTemplate.category || "Minimal";
-  document.getElementById("input-meta-description").value = currentTemplate.description || "";
-  document.getElementById("input-meta-tags").value = (currentTemplate.tags || []).join(", ");
-  document.getElementById("select-meta-headline-font").value = currentTemplate.headlineFont || "Outfit";
-  document.getElementById("select-meta-subheadline-font").value = currentTemplate.subheadlineFont || "Outfit";
+  document.getElementById("select-meta-category").value = state.currentTemplate.category || "Minimal";
+  document.getElementById("input-meta-description").value = state.currentTemplate.description || "";
+  document.getElementById("input-meta-tags").value = (state.currentTemplate.tags || []).join(", ");
+  document.getElementById("select-meta-headline-font").value = state.currentTemplate.headlineFont || "Outfit";
+  document.getElementById("select-meta-subheadline-font").value = state.currentTemplate.subheadlineFont || "Outfit";
 
   // Pre-load default fonts
-  ensureFontLoaded(currentTemplate.headlineFont);
-  ensureFontLoaded(currentTemplate.subheadlineFont);
-  currentTemplate.layout.forEach(layer => {
+  ensureFontLoaded(state.currentTemplate.headlineFont);
+  ensureFontLoaded(state.currentTemplate.subheadlineFont);
+  state.currentTemplate.layout.forEach(layer => {
     if (layer.font) ensureFontLoaded(layer.font);
   });
 
@@ -477,11 +42,11 @@ function initEditorPage() {
   deselectLayer();
 }
 
-function createNewTemplate() {
+export function createNewTemplate() {
   const newId = "tpl_" + Math.random().toString(36).substr(2, 9);
   const defaultTemplate = {
     id: newId,
-    name: "New Template " + templates.length,
+    name: "New Template " + state.templates.length,
     category: "Minimal",
     thumbnailUrl: "",
     isPro: false,
@@ -527,17 +92,15 @@ function createNewTemplate() {
   openEditor(defaultTemplate);
 }
 
-// ═══════════════════════════════════════════════════════════
-// LIVE RENDERING & THE CANVAS PREVIEW SYSTEM
-// ═══════════════════════════════════════════════════════════
 
-function renderPreview() {
+
+export function renderPreview() {
   const canvas = document.getElementById("main-editor-canvas");
   canvas.innerHTML = "";
 
   // Render layers in index order (first = background/bottom, last = front)
-  currentTemplate.layout.forEach((layer, index) => {
-    const isSelected = selectedLayerIndex === index;
+  state.currentTemplate.layout.forEach((layer, index) => {
+    const isSelected = state.selectedLayerIndex === index;
     const layerHtml = getLayerHtml(layer, index, isSelected);
     canvas.insertAdjacentHTML("beforeend", layerHtml);
   });
@@ -547,7 +110,7 @@ function renderPreview() {
 }
 
 // Generates correct inline CSS & HTML structures matching Flutter template layouts
-function getLayerHtml(layer, index, isSelected) {
+export function getLayerHtml(layer, index, isSelected) {
   const selectedClass = isSelected ? "selected-element" : "";
   
   // Background element is always positioned at 100% of canvas
@@ -590,7 +153,7 @@ function getLayerHtml(layer, index, isSelected) {
 
   switch (layer.type) {
     case 'text':
-      const font = layer.font || currentTemplate.headlineFont || 'Outfit';
+      const font = layer.font || state.currentTemplate.headlineFont || 'Outfit';
       ensureFontLoaded(font);
       
       // Process text placeholders: replace {headline} and {subheadline} with dummy text if empty
@@ -820,11 +383,9 @@ function getLayerHtml(layer, index, isSelected) {
   `;
 }
 
-// ═══════════════════════════════════════════════════════════
-// INTERACTIVE DRAGGING MOUSE LOGIC
-// ═══════════════════════════════════════════════════════════
 
-function setupDragHandlers() {
+
+export function setupDragHandlers() {
   const previewLayers = document.querySelectorAll(".preview-layer");
   
   previewLayers.forEach(el => {
@@ -837,11 +398,11 @@ function setupDragHandlers() {
       selectLayer(idx);
 
       // Setup dragging state
-      isDragging = true;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      dragInitialX = parseFloat(currentTemplate.layout[idx].x) || 0;
-      dragInitialY = parseFloat(currentTemplate.layout[idx].y) || 0;
+      state.isDragging = true;
+      state.dragStartX = e.clientX;
+      state.dragStartY = e.clientY;
+      state.dragInitialX = parseFloat(state.currentTemplate.layout[idx].x) || 0;
+      state.dragInitialY = parseFloat(state.currentTemplate.layout[idx].y) || 0;
       
       el.style.cursor = "grabbing";
     });
@@ -854,19 +415,19 @@ function setupDragHandlers() {
 
 // Global mouse listeners for dragging
 document.addEventListener("mousemove", (e) => {
-  if (!isDragging || selectedLayerIndex < 0) return;
+  if (!state.isDragging || state.selectedLayerIndex < 0) return;
 
-  const dx = e.clientX - dragStartX;
-  const dy = e.clientY - dragStartY;
+  const dx = e.clientX - state.dragStartX;
+  const dy = e.clientY - state.dragStartY;
 
   // Convert pixel offsets relative to scaled viewport sizes
   // virtual canvas is exactly 390x844
   const canvasW = 390;
   const canvasH = 847;
   
-  const targetLayer = currentTemplate.layout[selectedLayerIndex];
-  const newX = dragInitialX + (dx / canvasScale) / canvasW;
-  const newY = dragInitialY + (dy / canvasScale) / canvasH;
+  const targetLayer = state.currentTemplate.layout[state.selectedLayerIndex];
+  const newX = state.dragInitialX + (dx / state.canvasScale) / canvasW;
+  const newY = state.dragInitialY + (dy / state.canvasScale) / canvasH;
 
   // Bound coordinates to reasonable canvas bounds
   targetLayer.x = parseFloat(Math.max(-0.5, Math.min(1.5, newX)).toFixed(3));
@@ -882,8 +443,8 @@ document.addEventListener("mousemove", (e) => {
 });
 
 document.addEventListener("mouseup", () => {
-  if (isDragging) {
-    isDragging = false;
+  if (state.isDragging) {
+    state.isDragging = false;
     // Save draft auto-locally on drop
     saveTemplateDraft();
   }
@@ -900,24 +461,22 @@ if (mainCanvas) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// LAYERS PANEL & PROPERTIES LOGIC
-// ═══════════════════════════════════════════════════════════
 
-function renderLayersList() {
+
+export function renderLayersList() {
   const container = document.getElementById("layers-list-container");
   container.innerHTML = "";
   
-  document.getElementById("layer-count").textContent = `${currentTemplate.layout.length} elements`;
+  document.getElementById("layer-count").textContent = `${state.currentTemplate.layout.length} elements`;
 
   // Draw layers. Render list backwards so top elements in list represent front items (highest index)
-  for (let i = currentTemplate.layout.length - 1; i >= 0; i--) {
-    const layer = currentTemplate.layout[i];
+  for (let i = state.currentTemplate.layout.length - 1; i >= 0; i--) {
+    const layer = state.currentTemplate.layout[i];
     
     // Skip background from layers reordering list as it's static at the base
     if (layer.type === 'background') continue;
 
-    const isActive = selectedLayerIndex === i;
+    const isActive = state.selectedLayerIndex === i;
     const activeClass = isActive ? "active" : "";
 
     let iconName = "square";
@@ -983,8 +542,8 @@ function renderLayersList() {
   lucide.createIcons();
 }
 
-function selectLayer(index) {
-  selectedLayerIndex = index;
+export function selectLayer(index) {
+  state.selectedLayerIndex = index;
 
   // Reset selected styles in list
   document.querySelectorAll(".layer-item").forEach(el => {
@@ -1012,8 +571,8 @@ function selectLayer(index) {
 
   // Show/Hide property control categories based on type
   const targetLayer = index === -2 
-    ? currentTemplate.layout.find(l => l.type === 'background')
-    : currentTemplate.layout[index];
+    ? state.currentTemplate.layout.find(l => l.type === 'background')
+    : state.currentTemplate.layout[index];
 
   document.getElementById("prop-title-layer-name").textContent = targetLayer.type.toUpperCase() + " LAYER";
 
@@ -1061,7 +620,7 @@ function selectLayer(index) {
       document.getElementById("section-prop-text").classList.remove("hidden");
       
       document.getElementById("textarea-text-content").value = targetLayer.content || "";
-      document.getElementById("select-text-font").value = targetLayer.font || currentTemplate.headlineFont || "Outfit";
+      document.getElementById("select-text-font").value = targetLayer.font || state.currentTemplate.headlineFont || "Outfit";
       document.getElementById("picker-text-color").value = targetLayer.color || "#141A14";
       document.getElementById("text-text-color").value = targetLayer.color || "#141A14";
       document.getElementById("select-text-align").value = targetLayer.align || "center";
@@ -1131,14 +690,14 @@ function selectLayer(index) {
   }
 }
 
-function deselectLayer() {
-  selectedLayerIndex = -1;
+export function deselectLayer() {
+  state.selectedLayerIndex = -1;
   document.getElementById("properties-placeholder").classList.remove("hidden");
   document.getElementById("properties-controls-container").classList.add("hidden");
   renderPreview();
 }
 
-function toggleShapeControlGroups(shapeType, targetLayer) {
+export function toggleShapeControlGroups(shapeType, targetLayer) {
   // Select items
   const rGroup = document.querySelector(".id-prop-corner-radius");
   const sGroup = document.querySelector(".id-prop-stroke-width");
@@ -1177,7 +736,7 @@ function toggleShapeControlGroups(shapeType, targetLayer) {
   }
 }
 
-function setupBackgroundPropsForm(layer) {
+export function setupBackgroundPropsForm(layer) {
   const typeSelect = document.getElementById("select-bg-type");
   const solidGroup = document.getElementById("group-bg-solid-color");
   const gradGroup = document.getElementById("group-bg-gradient");
@@ -1213,11 +772,9 @@ function setupBackgroundPropsForm(layer) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ADD, MOVE, DELETE LAYERS
-// ═══════════════════════════════════════════════════════════
 
-function addLayer(type) {
+
+export function addLayer(type) {
   let newLayer = { type, pinning: 'safe' };
   
   if (type === 'text') {
@@ -1293,54 +850,54 @@ function addLayer(type) {
   }
 
   // Insert layer at top (end of layout array)
-  currentTemplate.layout.push(newLayer);
+  state.currentTemplate.layout.push(newLayer);
   
   // Select the newly added layer
-  selectedLayerIndex = currentTemplate.layout.length - 1;
+  state.selectedLayerIndex = state.currentTemplate.layout.length - 1;
 
   renderPreview();
   renderLayersList();
-  selectLayer(selectedLayerIndex);
+  selectLayer(state.selectedLayerIndex);
   
   showToast(`Added ${type} layer`);
   saveTemplateDraft();
 }
 
-function moveLayer(index, direction) {
+export function moveLayer(index, direction) {
   const newIndex = index + direction;
   
   // Check bounds. Background must stay at index 0 (can't move items behind bg, nor bg itself)
-  if (newIndex <= 0 || newIndex >= currentTemplate.layout.length) return;
+  if (newIndex <= 0 || newIndex >= state.currentTemplate.layout.length) return;
   
   // Swap positions in array
-  const temp = currentTemplate.layout[index];
-  currentTemplate.layout[index] = currentTemplate.layout[newIndex];
-  currentTemplate.layout[newIndex] = temp;
+  const temp = state.currentTemplate.layout[index];
+  state.currentTemplate.layout[index] = state.currentTemplate.layout[newIndex];
+  state.currentTemplate.layout[newIndex] = temp;
 
   // Maintain correct selection index mapping
-  if (selectedLayerIndex === index) {
-    selectedLayerIndex = newIndex;
-  } else if (selectedLayerIndex === newIndex) {
-    selectedLayerIndex = index;
+  if (state.selectedLayerIndex === index) {
+    state.selectedLayerIndex = newIndex;
+  } else if (state.selectedLayerIndex === newIndex) {
+    state.selectedLayerIndex = index;
   }
 
   renderPreview();
   renderLayersList();
-  selectLayer(selectedLayerIndex);
+  selectLayer(state.selectedLayerIndex);
   saveTemplateDraft();
 }
 
-function deleteLayer(index) {
-  if (index === 0 && currentTemplate.layout[index].type === 'background') {
+export function deleteLayer(index) {
+  if (index === 0 && state.currentTemplate.layout[index].type === 'background') {
     showToast("Cannot delete background layer", true);
     return;
   }
 
-  const name = currentTemplate.layout[index].type;
-  currentTemplate.layout.splice(index, 1);
+  const name = state.currentTemplate.layout[index].type;
+  state.currentTemplate.layout.splice(index, 1);
   
   // Reset selection index
-  selectedLayerIndex = -1;
+  state.selectedLayerIndex = -1;
   
   renderPreview();
   renderLayersList();
@@ -1350,9 +907,9 @@ function deleteLayer(index) {
   saveTemplateDraft();
 }
 
-function duplicateLayer(index) {
-  if (index < 0 || index >= currentTemplate.layout.length) return;
-  const original = currentTemplate.layout[index];
+export function duplicateLayer(index) {
+  if (index < 0 || index >= state.currentTemplate.layout.length) return;
+  const original = state.currentTemplate.layout[index];
   if (original.type === 'background') {
     showToast("Cannot duplicate background layer", true);
     return;
@@ -1366,22 +923,22 @@ function duplicateLayer(index) {
   clone.y = parseFloat(Math.min(1.0, (clone.y || 0) + 0.05).toFixed(3));
 
   // Insert clone directly above original
-  currentTemplate.layout.splice(index + 1, 0, clone);
+  state.currentTemplate.layout.splice(index + 1, 0, clone);
 
   // Select duplicated layer
-  selectedLayerIndex = index + 1;
+  state.selectedLayerIndex = index + 1;
 
   renderPreview();
   renderLayersList();
-  selectLayer(selectedLayerIndex);
+  selectLayer(state.selectedLayerIndex);
 
   showToast(`Duplicated ${original.type} layer`);
   saveTemplateDraft();
 }
 
-function alignSelectedLayer(direction) {
-  if (selectedLayerIndex < 0) return;
-  const layer = currentTemplate.layout[selectedLayerIndex];
+export function alignSelectedLayer(direction) {
+  if (state.selectedLayerIndex < 0) return;
+  const layer = state.currentTemplate.layout[state.selectedLayerIndex];
   if (layer.type === 'background') return;
 
   const w = parseFloat(layer.width) || 0.8;
@@ -1427,39 +984,37 @@ function alignSelectedLayer(direction) {
   saveTemplateDraft();
 }
 
-// ═══════════════════════════════════════════════════════════
-// PERSISTENCE & FIREBASE STORAGE UPLOAD
-// ═══════════════════════════════════════════════════════════
 
-function saveTemplateDraft() {
-  if (!currentTemplate) return;
-  localStorage.setItem(`fk_draft_${currentTemplate.id}`, JSON.stringify(currentTemplate));
-  sessionStorage.setItem('fk_current_editing_template', JSON.stringify(currentTemplate));
+
+export function saveTemplateDraft() {
+  if (!state.currentTemplate) return;
+  localStorage.setItem(`fk_draft_${state.currentTemplate.id}`, JSON.stringify(state.currentTemplate));
+  sessionStorage.setItem('fk_current_editing_template', JSON.stringify(state.currentTemplate));
 }
 
 // Renders canvas dynamically, converts to PNG blob, uploads to storage, and pushes metadata configuration to firestore
-function pushTemplateToFirestore() {
-  if (!currentUser) {
-    showToast("Please login first to upload templates", true);
+export function pushTemplateToFirestore() {
+  if (!state.currentUser) {
+    showToast("Please login first to upload state.templates", true);
     return;
   }
 
   // 1. Gather all metadata from inputs
-  currentTemplate.name = document.getElementById("input-template-name").value.trim() || "Untitled Template";
-  currentTemplate.category = document.getElementById("select-meta-category").value;
-  currentTemplate.description = document.getElementById("input-meta-description").value.trim();
-  currentTemplate.tags = document.getElementById("input-meta-tags").value.split(",").map(t => t.trim()).filter(t => t.length > 0);
-  currentTemplate.headlineFont = document.getElementById("select-meta-headline-font").value;
-  currentTemplate.subheadlineFont = document.getElementById("select-meta-subheadline-font").value;
+  state.currentTemplate.name = document.getElementById("input-template-name").value.trim() || "Untitled Template";
+  state.currentTemplate.category = document.getElementById("select-meta-category").value;
+  state.currentTemplate.description = document.getElementById("input-meta-description").value.trim();
+  state.currentTemplate.tags = document.getElementById("input-meta-tags").value.split(",").map(t => t.trim()).filter(t => t.length > 0);
+  state.currentTemplate.headlineFont = document.getElementById("select-meta-headline-font").value;
+  state.currentTemplate.subheadlineFont = document.getElementById("select-meta-subheadline-font").value;
 
   // Deduce screenshot slots (count number of phone elements)
-  const phoneCount = currentTemplate.layout.filter(l => l.type === 'phone').length;
-  currentTemplate.screenshotSlots = phoneCount || 1;
+  const phoneCount = state.currentTemplate.layout.filter(l => l.type === 'phone').length;
+  state.currentTemplate.screenshotSlots = phoneCount || 1;
 
   showLoading("Saving Template...", "Rendering canvas into high-resolution preview...");
 
   // Deselect active layer outline for screenshot capture
-  const previousSelection = selectedLayerIndex;
+  const previousSelection = state.selectedLayerIndex;
   deselectLayer();
 
   // Let DOM render deselect border before capture
@@ -1492,7 +1047,7 @@ function pushTemplateToFirestore() {
           return;
         }
 
-        const thumbRef = storage.ref().child(`templates/${currentTemplate.id}/thumbnail.png`);
+        const thumbRef = storage.ref().child(`state.templates/${state.currentTemplate.id}/thumbnail.png`);
         
         // Upload image to Storage bucket
         thumbRef.put(blob, { contentType: 'image/png' })
@@ -1502,44 +1057,44 @@ function pushTemplateToFirestore() {
             showLoading("Saving Template...", "Saving document schema configurations to Firestore...");
 
             // 2. Add thumbnail link and write template configuration
-            currentTemplate.thumbnailUrl = downloadUrl;
-            currentTemplate.isPro = false; // Always FREE
+            state.currentTemplate.thumbnailUrl = downloadUrl;
+            state.currentTemplate.isPro = false; // Always FREE
 
             // Clean schema properties
             // Prepare layout for encryption
             const unencryptedData = {
-              name: currentTemplate.name,
+              name: state.currentTemplate.name,
               isPro: false,
               isDownloaded: false,
               localPath: "",
-              fileSizeBytes: currentTemplate.fileSizeBytes || 150000,
-              deviceType: currentTemplate.deviceType || "phone",
-              description: currentTemplate.description,
-              tags: currentTemplate.tags,
-              screenshotSlots: currentTemplate.screenshotSlots,
-              headlineFont: currentTemplate.headlineFont,
-              subheadlineFont: currentTemplate.subheadlineFont,
-              layout: currentTemplate.layout
+              fileSizeBytes: state.currentTemplate.fileSizeBytes || 150000,
+              deviceType: state.currentTemplate.deviceType || "phone",
+              description: state.currentTemplate.description,
+              tags: state.currentTemplate.tags,
+              screenshotSlots: state.currentTemplate.screenshotSlots,
+              headlineFont: state.currentTemplate.headlineFont,
+              subheadlineFont: state.currentTemplate.subheadlineFont,
+              layout: state.currentTemplate.layout
             };
 
             const encryptedPayload = encryptTemplateData(unencryptedData);
             
             const docData = {
-              id: currentTemplate.id,
-              category: currentTemplate.category,
-              thumbnailUrl: currentTemplate.thumbnailUrl,
-              createdAt: currentTemplate.createdAt || null,
+              id: state.currentTemplate.id,
+              category: state.currentTemplate.category,
+              thumbnailUrl: state.currentTemplate.thumbnailUrl,
+              createdAt: state.currentTemplate.createdAt || null,
               encryptedData: encryptedPayload
             };
 
-            return db.collection("templates").doc(currentTemplate.id).set(docData);
+            return db.collection("state.templates").doc(state.currentTemplate.id).set(docData);
           })
           .then(() => {
             hideLoading();
             showToast("Template successfully pushed to Firestore!");
             
             // Clean local draft
-            localStorage.removeItem(`fk_draft_${currentTemplate.id}`);
+            localStorage.removeItem(`fk_draft_${state.currentTemplate.id}`);
             
             // Return to dashboard and reload listings
             if (window.location.pathname.includes('editor.html')) {
@@ -1565,25 +1120,23 @@ function pushTemplateToFirestore() {
   }, 200);
 }
 
-// ═══════════════════════════════════════════════════════════
-// SETUP EVENT LISTENERS & BINDINGS
-// ═══════════════════════════════════════════════════════════
 
-function setupEventListeners() {
+
+export function setupEventListeners() {
   
   // Navigation & Primary actions
   const btnCopyLlmPrompt = document.getElementById("btn-copy-llm-prompt");
   if (btnCopyLlmPrompt) {
     btnCopyLlmPrompt.addEventListener("click", () => {
-      if (!currentTemplate) return;
+      if (!state.currentTemplate) return;
       
       const promptText = `I have created a screenshot template for an app store. Here are the elements on the canvas:
 
-Background: ${currentTemplate.layout[0]?.type === 'background' ? JSON.stringify(currentTemplate.layout[0]) : 'Not specified'}
+Background: ${state.currentTemplate.layout[0]?.type === 'background' ? JSON.stringify(state.currentTemplate.layout[0]) : 'Not specified'}
 Other Elements (Layers):
-${currentTemplate.layout.slice(1).map((l, i) => `Layer ${i + 1} (${l.type}): ${JSON.stringify(l)}`).join('\n')}
+${state.currentTemplate.layout.slice(1).map((l, i) => `Layer ${i + 1} (${l.type}): ${JSON.stringify(l)}`).join('\n')}
 
-Fonts used: Headline: ${currentTemplate.headlineFont}, Subheadline: ${currentTemplate.subheadlineFont}
+Fonts used: Headline: ${state.currentTemplate.headlineFont}, Subheadline: ${state.currentTemplate.subheadlineFont}
 
 Please generate the following metadata for this template:
 1. Template Name (catchy, max 4 words)
@@ -1609,7 +1162,7 @@ Output strictly in JSON format matching this structure:
   const btnHeaderLogo = document.getElementById("header-logo-btn");
   if (btnHeaderLogo) {
     btnHeaderLogo.addEventListener("click", () => {
-      if (currentUser && window.location.pathname.includes('editor.html')) {
+      if (state.currentUser && window.location.pathname.includes('editor.html')) {
         window.location.href = 'index.html';
       }
     });
@@ -1635,7 +1188,7 @@ Output strictly in JSON format matching this structure:
   const tabCloud = document.getElementById("tab-cloud");
   if (tabCloud) {
     tabCloud.addEventListener("click", () => {
-      currentTab = 'cloud';
+      state.currentTab = 'cloud';
       tabCloud.classList.add("active");
       document.getElementById("tab-local").classList.remove("active");
       loadTemplates();
@@ -1645,7 +1198,7 @@ Output strictly in JSON format matching this structure:
   const tabLocal = document.getElementById("tab-local");
   if (tabLocal) {
     tabLocal.addEventListener("click", () => {
-      currentTab = 'local';
+      state.currentTab = 'local';
       tabLocal.classList.add("active");
       document.getElementById("tab-cloud").classList.remove("active");
       loadTemplates();
@@ -1678,14 +1231,14 @@ Output strictly in JSON format matching this structure:
   // Zoom Controls
   if (document.getElementById("btn-zoom-in")) {
     document.getElementById("btn-zoom-in").addEventListener("click", () => {
-      canvasScale = Math.min(1.5, canvasScale + 0.1);
+      state.canvasScale = Math.min(1.5, state.canvasScale + 0.1);
       updateCanvasZoom();
     });
   }
 
   if (document.getElementById("btn-zoom-out")) {
     document.getElementById("btn-zoom-out").addEventListener("click", () => {
-      canvasScale = Math.max(0.4, canvasScale - 0.1);
+      state.canvasScale = Math.max(0.4, state.canvasScale - 0.1);
       updateCanvasZoom();
     });
   }
@@ -1701,15 +1254,15 @@ Output strictly in JSON format matching this structure:
 
     // Duplicate active layer binding
     document.getElementById("btn-duplicate-selected-layer").addEventListener("click", () => {
-      if (selectedLayerIndex >= 0) {
-        duplicateLayer(selectedLayerIndex);
+      if (state.selectedLayerIndex >= 0) {
+        duplicateLayer(state.selectedLayerIndex);
       }
     });
 
     // Delete active layer binding
     document.getElementById("btn-delete-selected-layer").addEventListener("click", () => {
-      if (selectedLayerIndex >= 0) {
-        deleteLayer(selectedLayerIndex);
+      if (state.selectedLayerIndex >= 0) {
+        deleteLayer(state.selectedLayerIndex);
       }
     });
   }
@@ -1747,7 +1300,7 @@ Output strictly in JSON format matching this structure:
   if (document.getElementById("select-bg-type")) {
     document.getElementById("select-bg-type").addEventListener("change", (e) => {
       const val = e.target.value;
-      const bgLayer = currentTemplate.layout.find(l => l.type === 'background');
+      const bgLayer = state.currentTemplate.layout.find(l => l.type === 'background');
       
       // Clean old formats
       delete bgLayer.color;
@@ -1778,45 +1331,45 @@ Output strictly in JSON format matching this structure:
 
   // Color Pickers (Background)
   bindColorInput("picker-bg-solid", "text-bg-solid", (color) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
     bg.color = color;
     renderPreview();
   });
 
   bindColorInput("picker-bg-grad-start", "text-bg-grad-start", (color) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
     if (bg.gradient) bg.gradient[0] = color;
     renderPreview();
   });
 
   bindColorInput("picker-bg-grad-end", "text-bg-grad-end", (color) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
     if (bg.gradient) bg.gradient[1] = color;
     renderPreview();
   });
 
   if (document.getElementById("select-bg-grad-begin")) {
     document.getElementById("select-bg-grad-begin").addEventListener("change", (e) => {
-      const bg = currentTemplate.layout.find(l => l.type === 'background');
+      const bg = state.currentTemplate.layout.find(l => l.type === 'background');
       bg.begin = e.target.value;
       renderPreview();
     });
 
     document.getElementById("select-bg-grad-end-dir").addEventListener("change", (e) => {
-      const bg = currentTemplate.layout.find(l => l.type === 'background');
+      const bg = state.currentTemplate.layout.find(l => l.type === 'background');
       bg.end = e.target.value;
       renderPreview();
     });
   }
 
   bindColorInput("picker-bg-split-top", "text-bg-split-top", (color) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
     bg.top_color = color;
     renderPreview();
   });
 
   bindColorInput("picker-bg-split-bottom", "text-bg-split-bottom", (color) => {
-    const bg = currentTemplate.layout.find(l => l.type === 'background');
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
     bg.bottom_color = color;
     renderPreview();
   });
@@ -1840,7 +1393,7 @@ Output strictly in JSON format matching this structure:
 
     document.getElementById("select-text-weight").addEventListener("change", (e) => {
       const val = e.target.value;
-      const l = currentTemplate.layout[selectedLayerIndex];
+      const l = state.currentTemplate.layout[state.selectedLayerIndex];
       if (val === 'w700') {
         l.bold = true;
         delete l.weight;
@@ -1862,7 +1415,7 @@ Output strictly in JSON format matching this structure:
     document.getElementById("select-shape-type").addEventListener("change", (e) => {
       const val = e.target.value;
       updateSelectedLayerField("shape_type", val);
-      toggleShapeControlGroups(val, currentTemplate.layout[selectedLayerIndex]);
+      toggleShapeControlGroups(val, state.currentTemplate.layout[state.selectedLayerIndex]);
     });
   }
 
@@ -1971,13 +1524,13 @@ Output strictly in JSON format matching this structure:
 }
 
 function updateCanvasZoom() {
-  document.getElementById("canvas-zoom-wrapper").style.transform = `scale(${canvasScale})`;
-  document.getElementById("zoom-percentage").textContent = `${Math.round(canvasScale * 100)}%`;
+  document.getElementById("canvas-zoom-wrapper").style.transform = `scale(${state.canvasScale})`;
+  document.getElementById("zoom-percentage").textContent = `${Math.round(state.canvasScale * 100)}%`;
 }
 
 function updateSelectedLayerField(field, value) {
-  if (selectedLayerIndex < 0) return;
-  currentTemplate.layout[selectedLayerIndex][field] = value;
+  if (state.selectedLayerIndex < 0) return;
+  state.currentTemplate.layout[state.selectedLayerIndex][field] = value;
   renderPreview();
   saveTemplateDraft();
 }
@@ -1993,7 +1546,7 @@ function bindSlider(sliderId, labelId, fieldKey, isGlobalBg = false) {
     label.textContent = val;
     
     if (isGlobalBg) {
-      const bg = currentTemplate.layout.find(l => l.type === 'background');
+      const bg = state.currentTemplate.layout.find(l => l.type === 'background');
       bg[fieldKey] = val;
       renderPreview();
     } else {
@@ -2033,3 +1586,36 @@ function bindColorInput(pickerId, textId, updateCallback) {
     }
   });
 }
+
+export function initEditor() {
+  populateFontDropdowns();
+  lucide.createIcons();
+  
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      state.currentUser = user;
+      const btnDashboard = document.getElementById("btn-dashboard-view");
+      const btnCreate = document.getElementById("btn-create-template");
+      if (btnDashboard) btnDashboard.classList.remove("hidden");
+      if (btnCreate) btnCreate.classList.remove("hidden");
+      hideLoginModal();
+      
+      initEditorPage();
+    } else {
+      state.currentUser = null;
+      const btnDashboard = document.getElementById("btn-dashboard-view");
+      const btnCreate = document.getElementById("btn-create-template");
+      if (btnDashboard) btnDashboard.classList.add("hidden");
+      if (btnCreate) btnCreate.classList.add("hidden");
+      showLoginModal();
+    }
+  });
+
+  setupEventListeners();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (window.location.pathname.includes('editor.html')) {
+    initEditor();
+  }
+});
