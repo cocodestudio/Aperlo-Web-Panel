@@ -176,6 +176,7 @@ export function getLayerHtml(layer, index, isSelected) {
         letter-spacing: ${letterSpacing};
         line-height: ${lineHeight};
         word-wrap: break-word;
+        white-space: pre-wrap;
       `;
       innerContent = textContent;
       break;
