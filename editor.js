@@ -1093,14 +1093,8 @@ export function pushTemplateToFirestore() {
             // Clean local draft
             localStorage.removeItem(`fk_draft_${state.currentTemplate.id}`);
             
-            // Return to dashboard and reload listings
-            if (window.location.pathname.includes('editor.html')) {
-              window.location.href = 'index.html';
-            } else {
-              document.getElementById("view-editor").classList.add("hidden");
-              document.getElementById("view-dashboard").classList.remove("hidden");
-              loadTemplates();
-            }
+            // Return to dashboard
+            window.location.href = 'index.html';
           })
           .catch(err => {
             hideLoading();
