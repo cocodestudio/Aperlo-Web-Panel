@@ -210,7 +210,7 @@ export function initDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!window.location.pathname.includes('editor.html')) {
+  if (document.getElementById("dashboard-template-grid")) {
     initDashboard();
   }
 });

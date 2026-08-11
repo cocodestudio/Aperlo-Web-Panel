@@ -1615,7 +1615,7 @@ export function initEditor() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (window.location.pathname.includes('editor.html')) {
+  if (document.getElementById("main-editor-canvas")) {
     initEditor();
   }
 });
