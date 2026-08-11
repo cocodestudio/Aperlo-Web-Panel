@@ -377,11 +377,7 @@ export function getLayerHtml(layer, index, isSelected) {
       break;
   }
 
-  return `
-    <div class="preview-layer ${selectedClass}" style="${elementStyles}" data-index="${index}">
-      ${innerContent}
-    </div>
-  `;
+  return `<div class="preview-layer ${selectedClass}" style="${elementStyles}" data-index="${index}">${innerContent}</div>`;
 }
 
 
