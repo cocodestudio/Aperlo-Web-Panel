@@ -1384,6 +1384,10 @@ Output strictly in JSON format matching this structure:
       updateSelectedLayerField("font", e.target.value);
     });
 
+    bindColorInput("picker-text-color", "text-text-color", (color) => {
+      updateSelectedLayerField("color", color);
+    });
+
     document.getElementById("select-text-align").addEventListener("change", (e) => {
       updateSelectedLayerField("align", e.target.value);
     });
