@@ -890,12 +890,15 @@ document.addEventListener("mouseup", () => {
 });
 
 // Click background canvas deselects active selected layer
-document.getElementById("main-editor-canvas").addEventListener("mousedown", (e) => {
-  if (e.target === document.getElementById("main-editor-canvas") || e.target.classList.contains("preview-background")) {
-    // Select background config panel
-    selectLayer(-2);
-  }
-});
+const mainCanvas = document.getElementById("main-editor-canvas");
+if (mainCanvas) {
+  mainCanvas.addEventListener("mousedown", (e) => {
+    if (e.target === mainCanvas || e.target.classList.contains("preview-background")) {
+      // Select background config panel
+      selectLayer(-2);
+    }
+  });
+}
 
 // ═══════════════════════════════════════════════════════════
 // LAYERS PANEL & PROPERTIES LOGIC
