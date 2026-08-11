@@ -49,7 +49,7 @@ export function loadTemplates() {
     </div>
   `;
 
-  db.collection("state.templates").get()
+  db.collection("templates").get()
     .then((querySnapshot) => {
       state.templates = [];
       querySnapshot.forEach((doc) => {
@@ -76,7 +76,7 @@ export function renderTemplatesGrid(categoryFilter = "All") {
   const grid = document.getElementById("dashboard-template-grid");
   grid.innerHTML = "";
 
-  const listToFilter = state.currentTab === 'cloud' ? templates : loadLocalDrafts();
+  const listToFilter = state.currentTab === 'cloud' ? state.templates : loadLocalDrafts();
 
   const filtered = categoryFilter === "All" 
     ? listToFilter 
@@ -86,8 +86,8 @@ export function renderTemplatesGrid(categoryFilter = "All") {
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--color-text-muted);">
         <i data-lucide="folder-open" style="width: 48px; height: 48px; margin-bottom: 12px; stroke-width: 1.5;"></i>
-        <h4>No state.templates found</h4>
-        <p>There are no state.templates in category "${categoryFilter}"</p>
+        <h4>No templates found</h4>
+        <p>There are no templates in category "${categoryFilter}"</p>
       </div>
     `;
     lucide.createIcons();
@@ -157,17 +157,17 @@ export function deleteTemplate(template) {
     showLoading("Deleting Template...", "Deleting document and asset references from Firebase...");
     
     // 1. Delete thumbnail file from storage
-    const thumbRef = storage.ref().child(`state.templates/${template.id}/thumbnail.png`);
+    const thumbRef = storage.ref().child(`templates/${template.id}/thumbnail.png`);
     
     thumbRef.delete()
       .then(() => {
         // Thumbnail deleted successfully from Storage, now delete document from Firestore
-        return db.collection("state.templates").doc(template.id).delete();
+        return db.collection("templates").doc(template.id).delete();
       })
       .catch((err) => {
         // If the thumbnail didn't exist or failed, log and proceed to delete firestore document anyway
         console.warn("Storage thumbnail delete failed or didn't exist:", err.message);
-        return db.collection("state.templates").doc(template.id).delete();
+        return db.collection("templates").doc(template.id).delete();
       })
       .then(() => {
         hideLoading();

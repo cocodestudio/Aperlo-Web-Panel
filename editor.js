@@ -995,7 +995,7 @@ export function saveTemplateDraft() {
 // Renders canvas dynamically, converts to PNG blob, uploads to storage, and pushes metadata configuration to firestore
 export function pushTemplateToFirestore() {
   if (!state.currentUser) {
-    showToast("Please login first to upload state.templates", true);
+    showToast("Please login first to upload templates", true);
     return;
   }
 
@@ -1047,7 +1047,7 @@ export function pushTemplateToFirestore() {
           return;
         }
 
-        const thumbRef = storage.ref().child(`state.templates/${state.currentTemplate.id}/thumbnail.png`);
+        const thumbRef = storage.ref().child(`templates/${state.currentTemplate.id}/thumbnail.png`);
         
         // Upload image to Storage bucket
         thumbRef.put(blob, { contentType: 'image/png' })
@@ -1087,7 +1087,7 @@ export function pushTemplateToFirestore() {
               encryptedData: encryptedPayload
             };
 
-            return db.collection("state.templates").doc(state.currentTemplate.id).set(docData);
+            return db.collection("templates").doc(state.currentTemplate.id).set(docData);
           })
           .then(() => {
             hideLoading();

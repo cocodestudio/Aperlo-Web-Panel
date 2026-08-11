@@ -99,7 +99,7 @@ export function showLoginModal() {
     <div class="loader-card" style="width: 360px;">
       <img src="logo.png" class="logo-icon" style="margin: 0 auto 16px; display: block; width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
       <h3 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 6px;">Developer Studio Login</h3>
-      <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px;">Log in to create and edit Aperlo state.templates</p>
+      <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px;">Log in to create and edit Aperlo templates</p>
       
       <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px; text-align: left; width: 100%;">
         <div class="form-group">
