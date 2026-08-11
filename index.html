@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aperlo Template Manager</title>
+  
+  <!-- Premium Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&family=Syne:wght@400..800&family=Syne+Mono&family=Inter:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:ital,wght@0,100..900;1,100..900&family=Manrope:wght@200..800&family=Lato:ital,wght@0,100..900;1,100..900&family=Caveat:wght@400..700&family=Merriweather:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css?v=7">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- HTML2Canvas Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- CryptoJS for AES Encryption -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+  
+  <!-- Firebase Compat SDKs (v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <!-- App Header / Navbar -->
+  <header class="app-header">
+    <div class="header-logo" id="header-logo-btn">
+      <img src="logo.png" class="logo-icon" style="object-fit: cover; border-radius: 50%;">
+      <h1>Aperlo <span>Studio</span></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btn-dashboard-view"><i data-lucide="layout-grid"></i> Dashboard</button>
+      <button class="btn btn-primary" id="btn-create-template"><i data-lucide="plus"></i> New Template</button>
+    </div>
+  </header>
+
+  <main class="app-content">
+    
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD VIEW -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="view-dashboard" class="view-section">
+
+      <!-- Title scrolls away freely -->
+      <div class="view-header">
+        <h2>Template Library</h2>
+        <p>Manage, edit, and push templates to Aperlo Firestore</p>
+      </div>
+
+      <!-- Tabs + chips stick at the top once title scrolls off -->
+      <div class="sticky-controls">
+        <!-- Tab selectors -->
+        <div class="tabs-bar">
+          <button class="tab-btn active" id="tab-cloud"><i data-lucide="cloud" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i> Firestore Templates</button>
+          <button class="tab-btn" id="tab-local"><i data-lucide="laptop" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i> Local Drafts</button>
+        </div>
+
+        <!-- Categories filter chips -->
+        <div class="filter-bar">
+          <button class="filter-chip active" data-category="All">All Categories</button>
+          <button class="filter-chip" data-category="Minimal">Minimal</button>
+          <button class="filter-chip" data-category="Bold">Bold</button>
+          <button class="filter-chip" data-category="Gradient">Gradient</button>
+          <button class="filter-chip" data-category="Dark">Dark</button>
+          <button class="filter-chip" data-category="3D Mockup">3D Mockup</button>
+          <button class="filter-chip" data-category="Illustration">Illustration</button>
+          <button class="filter-chip" data-category="Typography">Typography</button>
+        </div>
+      </div>
+
+      <!-- Template grid scrolls underneath -->
+      <div class="template-grid" id="dashboard-template-grid">
+        <!-- Skeleton loaders loaded via Javascript -->
+      </div>
+    </section>
+
+
+
+  </main>
+
+  <!-- Global Loading / Overlay Modal -->
+  <div class="loading-overlay hidden" id="app-loading-overlay">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <h4 id="loading-overlay-title">Saving Template...</h4>
+      <p id="loading-overlay-desc">Uploading assets to Firebase Storage</p>
+    </div>
+  </div>
+
+  <!-- Custom Alert Toast -->
+  <div class="toast-container" id="toast-wrapper"></div>
+
+  <!-- App Logic script -->
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

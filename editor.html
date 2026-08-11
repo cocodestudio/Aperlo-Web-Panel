@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FrameKit Template Manager</title>
+  
+  <!-- Premium Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@100..900&family=Syne:wght@400..800&family=Syne+Mono&family=Inter:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:ital,wght@0,100..900;1,100..900&family=Manrope:wght@200..800&family=Lato:ital,wght@0,100..900;1,100..900&family=Caveat:wght@400..700&family=Merriweather:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css?v=7">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- HTML2Canvas Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- CryptoJS for AES Encryption -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+  
+  <!-- Firebase Compat SDKs (v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <!-- App Header / Navbar -->
+  <header class="app-header">
+    <div class="header-logo" id="header-logo-btn">
+      <div class="logo-icon">FK</div>
+      <h1>FrameKit <span>Studio</span></h1>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btn-dashboard-view"><i data-lucide="layout-grid"></i> Dashboard</button>
+      <button class="btn btn-primary" id="btn-create-template"><i data-lucide="plus"></i> New Template</button>
+    </div>
+  </header>
+
+  <main class="app-content">
+    
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- EDITOR VIEW -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="view-editor" class="view-section">
+      
+      <!-- Editor Top Toolbar -->
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <button class="btn-icon" id="btn-back-dashboard" title="Back to Dashboard"><i data-lucide="arrow-left"></i></button>
+          <div class="template-title-edit">
+            <input type="text" id="input-template-name" value="My New Template" placeholder="Enter template name...">
+            <span class="category-badge" id="badge-template-category">Minimal</span>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div class="zoom-controls">
+            <button class="btn-icon btn-sm" id="btn-zoom-out"><i data-lucide="minus"></i></button>
+            <span id="zoom-percentage">80%</span>
+            <button class="btn-icon btn-sm" id="btn-zoom-in"><i data-lucide="plus"></i></button>
+          </div>
+          <button class="btn btn-secondary" id="btn-save-draft"><i data-lucide="save"></i> Save Local</button>
+          <button class="btn btn-primary" id="btn-push-firestore"><i data-lucide="cloud-upload"></i> Push to Firestore</button>
+        </div>
+      </div>
+
+      <!-- Main Editor Container -->
+      <div class="editor-container">
+
+        <!-- 1. LEFT SIDEBAR: LAYERS & ELEMENT CREATION -->
+        <aside class="editor-sidebar left-sidebar">
+          
+          <!-- Element Creation buttons -->
+          <div class="sidebar-section">
+            <h3 class="section-title">Add Element</h3>
+            <div class="add-elements-grid">
+              <button class="add-btn" data-type="text"><i data-lucide="type"></i> Text</button>
+              <button class="add-btn" data-type="shape"><i data-lucide="shapes"></i> Shape</button>
+              <button class="add-btn" data-type="phone"><i data-lucide="smartphone"></i> Phone Mockup</button>
+              <button class="add-btn" data-type="badge"><i data-lucide="tag"></i> Badge</button>
+              <button class="add-btn" data-type="feature_row"><i data-lucide="list"></i> Feature Row</button>
+              <button class="add-btn" data-type="frosted_panel"><i data-lucide="layers"></i> Frosted Glass</button>
+              <button class="add-btn" data-type="divider"><i data-lucide="minus"></i> Divider</button>
+              <button class="add-btn" data-type="accent_bar"><i data-lucide="minus-square"></i> Accent Bar</button>
+            </div>
+          </div>
+
+          <!-- Layers panel -->
+          <div class="sidebar-section layers-panel-section">
+            <div class="section-header-inline">
+              <h3 class="section-title">Layers</h3>
+              <span class="info-tag" id="layer-count">0 layers</span>
+            </div>
+            <p class="subtitle">Drag layers to change z-ordering (top represents front)</p>
+            
+            <div class="layers-list" id="layers-list-container">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Template Metadata Settings -->
+          <div class="sidebar-section">
+            <h3 class="section-title">Template Metadata</h3>
+            <div class="meta-form">
+              <div class="form-group">
+                <label for="select-meta-category">Category</label>
+                <select id="select-meta-category">
+                  <option value="Minimal">Minimal</option>
+                  <option value="Bold">Bold</option>
+                  <option value="Gradient">Gradient</option>
+                  <option value="Dark">Dark</option>
+                  <option value="3D Mockup">3D Mockup</option>
+                  <option value="Illustration">Illustration</option>
+                  <option value="Typography">Typography</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="input-meta-description">Description</label>
+                <textarea id="input-meta-description" rows="2" placeholder="Brief template description..."></textarea>
+              </div>
+              <div class="form-group">
+                <label for="input-meta-tags">Tags (comma separated)</label>
+                <input type="text" id="input-meta-tags" placeholder="e.g. clean, trust, mockup">
+              </div>
+              <div class="form-group">
+                <label for="select-meta-headline-font">Default Headline Font</label>
+                <input type="text" id="select-meta-headline-font" class="font-selector" list="google-fonts-list">
+              </div>
+              <div class="form-group">
+                <label for="select-meta-subheadline-font">Default Subheadline Font</label>
+                <input type="text" id="select-meta-subheadline-font" class="font-selector" list="google-fonts-list">
+              </div>
+              <div class="form-group" style="margin-top: 16px;">
+                <button type="button" class="btn btn-secondary" id="btn-copy-llm-prompt" style="width: 100%; border-radius: var(--radius-md);">
+                  <i data-lucide="copy"></i> Copy LLM Prompt
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 2. CANVAS WORKSPACE (CENTER) -->
+        <div class="editor-workspace">
+          <div class="canvas-zoom-container" id="canvas-zoom-wrapper" style="transform: scale(0.8);">
+            
+            <!-- Virtual Phone Canvas (390 x 844) -->
+            <div class="template-canvas" id="main-editor-canvas" style="width: 390px; height: 844px;">
+              <!-- Renders background, shapes, phone frame, text, and other elements dynamically -->
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- 3. RIGHT SIDEBAR: PROPERTIES CONTROLS -->
+        <aside class="editor-sidebar right-sidebar" id="properties-sidebar">
+          <div class="no-selection-placeholder" id="properties-placeholder">
+            <i data-lucide="mouse-pointer"></i>
+            <h4>No layer selected</h4>
+            <p>Click on any element in the canvas or layers list to customize properties.</p>
+          </div>
+
+          <div class="properties-controls hidden" id="properties-controls-container">
+            <div class="properties-header">
+              <h4 id="prop-title-layer-name">Text Layer</h4>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-icon btn-sm" id="btn-duplicate-selected-layer" title="Duplicate Layer" style="color: var(--color-primary); border-color: var(--color-primary-light);"><i data-lucide="copy"></i></button>
+                <button class="btn-icon btn-sm btn-destructive" id="btn-delete-selected-layer" title="Delete Layer"><i data-lucide="trash-2"></i></button>
+              </div>
+            </div>
+
+            <!-- Position & Dimensions (All layers except background) -->
+            <div class="properties-section" id="section-pos-dims">
+              <h5 class="prop-section-title">Position & Size</h5>
+              
+              <!-- Quick Align Controls -->
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label>Quick Alignment</label>
+                <div class="align-buttons-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px;">
+                  <button class="btn btn-secondary btn-sm" id="btn-align-left" title="Align Left" style="padding: 6px; font-size: 11px;"><i data-lucide="align-left" style="width: 13px; height: 13px;"></i> Left</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-align-center-h" title="Center Horizontally" style="padding: 6px; font-size: 11px;"><i data-lucide="align-center" style="width: 13px; height: 13px;"></i> Center H</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-align-right" title="Align Right" style="padding: 6px; font-size: 11px;"><i data-lucide="align-right" style="width: 13px; height: 13px;"></i> Right</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-align-top" title="Align Top" style="padding: 6px; font-size: 11px;"><i data-lucide="arrow-up" style="width: 13px; height: 13px;"></i> Top</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-align-center-v" title="Center Vertically" style="padding: 6px; font-size: 11px;"><i data-lucide="align-justify" style="width: 13px; height: 13px;"></i> Center V</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-align-bottom" title="Align Bottom" style="padding: 6px; font-size: 11px;"><i data-lucide="arrow-down" style="width: 13px; height: 13px;"></i> Bottom</button>
+                </div>
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>X Position (horizontal fraction)</label>
+                  <span id="label-val-x">0.05</span>
+                </div>
+                <input type="range" id="slider-val-x" min="-0.2" max="1.2" step="0.01" value="0.05">
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Y Position (vertical fraction)</label>
+                  <span id="label-val-y">0.05</span>
+                </div>
+                <input type="range" id="slider-val-y" min="-0.2" max="1.2" step="0.01" value="0.05">
+              </div>
+              <div class="slider-group" id="group-prop-width">
+                <div class="slider-header">
+                  <label>Width fraction</label>
+                  <span id="label-val-width">0.85</span>
+                </div>
+                <input type="range" id="slider-val-width" min="0.05" max="1.5" step="0.01" value="0.85">
+              </div>
+              <div class="slider-group" id="group-prop-height">
+                <div class="slider-header">
+                  <label>Height fraction</label>
+                  <span id="label-val-height">0.15</span>
+                </div>
+                <input type="range" id="slider-val-height" min="0.05" max="1.5" step="0.01" value="0.15">
+              </div>
+              <div class="slider-group" id="group-prop-rotation">
+                <div class="slider-header">
+                  <label>Rotation (degrees)</label>
+                  <span id="label-val-rotation">0°</span>
+                </div>
+                <input type="range" id="slider-val-rotation" min="-180" max="180" step="1" value="0">
+              </div>
+              <div class="slider-group" id="group-prop-opacity">
+                <div class="slider-header">
+                  <label>Opacity</label>
+                  <span id="label-val-opacity">100%</span>
+                </div>
+                <input type="range" id="slider-val-opacity" min="0" max="1" step="0.05" value="1">
+              </div>
+            </div>
+
+            <!-- Background specific properties -->
+            <div class="properties-section hidden" id="section-prop-background">
+              <h5 class="prop-section-title">Background Customization</h5>
+              <div class="form-group">
+                <label for="select-bg-type">Type</label>
+                <select id="select-bg-type">
+                  <option value="solid">Solid Color</option>
+                  <option value="linear">Linear Gradient</option>
+                  <option value="radial">Radial Gradient</option>
+                  <option value="split">Split Color</option>
+                </select>
+              </div>
+
+              <!-- Solid color picker -->
+              <div class="form-group" id="group-bg-solid-color">
+                <label>Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-bg-solid" value="#FAF9F6">
+                  <input type="text" id="text-bg-solid" value="#FAF9F6" placeholder="#FFFFFF">
+                </div>
+              </div>
+
+              <!-- Gradient colors -->
+              <div id="group-bg-gradient" class="hidden">
+                <div class="form-group">
+                  <label>Start Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-bg-grad-start" value="#0082FF">
+                    <input type="text" id="text-bg-grad-start" value="#0082FF">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>End Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-bg-grad-end" value="#0040A3">
+                    <input type="text" id="text-bg-grad-end" value="#0040A3">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="select-bg-grad-begin">Gradient Direction (Start)</label>
+                  <select id="select-bg-grad-begin">
+                    <option value="topCenter">Top Center</option>
+                    <option value="topLeft">Top Left</option>
+                    <option value="centerLeft">Center Left</option>
+                    <option value="bottomLeft">Bottom Left</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="select-bg-grad-end-dir">Gradient Direction (End)</label>
+                  <select id="select-bg-grad-end-dir">
+                    <option value="bottomCenter">Bottom Center</option>
+                    <option value="bottomRight">Bottom Right</option>
+                    <option value="centerRight">Center Right</option>
+                    <option value="topRight">Top Right</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Split backgrounds -->
+              <div id="group-bg-split" class="hidden">
+                <div class="form-group">
+                  <label>Top Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-bg-split-top" value="#FAF9F6">
+                    <input type="text" id="text-bg-split-top" value="#FAF9F6">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Bottom Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-bg-split-bottom" value="#F5F7F5">
+                    <input type="text" id="text-bg-split-bottom" value="#F5F7F5">
+                  </div>
+                </div>
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Split Ratio (fraction)</label>
+                    <span id="label-val-bg-split-at">0.5</span>
+                  </div>
+                  <input type="range" id="slider-val-bg-split-at" min="0.1" max="0.9" step="0.05" value="0.5">
+                </div>
+              </div>
+            </div>
+
+            <!-- Text specific properties -->
+            <div class="properties-section hidden" id="section-prop-text">
+              <h5 class="prop-section-title">Text Options</h5>
+              <div class="form-group">
+                <label for="textarea-text-content">Text Content</label>
+                <textarea id="textarea-text-content" rows="3" placeholder="Placeholder..."></textarea>
+                <div class="placeholder-helpers">
+                  <button class="helper-badge" data-insert="{headline}">{headline}</button>
+                  <button class="helper-badge" data-insert="{subheadline}">{subheadline}</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="select-text-font">Font Family</label>
+                <input type="text" id="select-text-font" class="font-selector" list="google-fonts-list">
+              </div>
+              <div class="form-group">
+                <label>Text Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-text-color" value="#141A14">
+                  <input type="text" id="text-text-color" value="#141A14">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="select-text-align">Alignment</label>
+                <select id="select-text-align">
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="select-text-weight">Font Weight</label>
+                <select id="select-text-weight">
+                  <option value="w100">Thin (100)</option>
+                  <option value="w300">Light (300)</option>
+                  <option value="w400">Regular (400)</option>
+                  <option value="w500">Medium (500)</option>
+                  <option value="w600">Semi Bold (600)</option>
+                  <option value="w700">Bold (700)</option>
+                  <option value="w800">Extra Bold (800)</option>
+                  <option value="w900">Black (900)</option>
+                </select>
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Font Size fraction</label>
+                  <span id="label-val-font-size">0.08</span>
+                </div>
+                <input type="range" id="slider-val-font-size" min="0.01" max="0.3" step="0.005" value="0.08">
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Line Height</label>
+                  <span id="label-val-line-height">1.2</span>
+                </div>
+                <input type="range" id="slider-val-line-height" min="0.8" max="2.5" step="0.05" value="1.2">
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Letter Spacing</label>
+                  <span id="label-val-letter-spacing">0</span>
+                </div>
+                <input type="range" id="slider-val-letter-spacing" min="-5" max="15" step="0.5" value="0">
+              </div>
+            </div>
+
+            <!-- Shape specific properties -->
+            <div class="properties-section hidden" id="section-prop-shape">
+              <h5 class="prop-section-title">Shape Config</h5>
+              <div class="form-group">
+                <label for="select-shape-type">Shape Type</label>
+                <select id="select-shape-type">
+                  <option value="circle">Circle</option>
+                  <option value="rect">Rectangle</option>
+                  <option value="rounded_rect">Rounded Rectangle</option>
+                  <option value="diamond">Diamond</option>
+                  <option value="heart">Heart</option>
+                  <option value="cross">Cross</option>
+                  <option value="ring">Ring Outline</option>
+                  <option value="arc">Arc</option>
+                  <option value="polygon">Polygon</option>
+                  <option value="star">Star</option>
+                  <option value="diagonal_split">Diagonal Split</option>
+                  <option value="blob">Blob</option>
+                  <option value="svg">Custom SVG</option>
+                </select>
+              </div>
+
+              <!-- Conditional: SVG Upload -->
+              <div class="form-group prop-control-group id-prop-svg hidden">
+                <label>Upload Custom SVG</label>
+                <input type="file" id="input-svg-upload" accept=".svg" class="btn btn-secondary" style="width:100%; padding:8px; font-size:12px;">
+              </div>
+              <div class="form-group">
+                <label>Fill/Stroke Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-shape-color" value="#1A6B4A">
+                  <input type="text" id="text-shape-color" value="#1A6B4A">
+                </div>
+              </div>
+              
+              <!-- Shape specific settings -->
+              <div class="slider-group id-prop-corner-radius">
+                <div class="slider-header">
+                  <label>Corner Radius (px)</label>
+                  <span id="label-val-corner-radius">16</span>
+                </div>
+                <input type="range" id="slider-val-corner-radius" min="0" max="100" step="1" value="16">
+              </div>
+              <div class="slider-group id-prop-stroke-width">
+                <div class="slider-header">
+                  <label>Stroke Width (px)</label>
+                  <span id="label-val-stroke-width">8</span>
+                </div>
+                <input type="range" id="slider-val-stroke-width" min="1" max="40" step="1" value="8">
+              </div>
+              <div class="slider-group id-prop-sides">
+                <div class="slider-header">
+                  <label>Polygon Sides</label>
+                  <span id="label-val-sides">6</span>
+                </div>
+                <input type="range" id="slider-val-sides" min="3" max="12" step="1" value="6">
+              </div>
+              <div class="slider-group id-prop-points">
+                <div class="slider-header">
+                  <label>Star Points</label>
+                  <span id="label-val-points">5</span>
+                </div>
+                <input type="range" id="slider-val-points" min="3" max="12" step="1" value="5">
+              </div>
+            </div>
+
+            <!-- Phone specific properties -->
+            <div class="properties-section hidden" id="section-prop-phone">
+              <h5 class="prop-section-title">Phone Mockup</h5>
+              <div class="form-group">
+                <label for="select-phone-style">Notch/Camera Cutout Style</label>
+                <select id="select-phone-style">
+                  <option value="dynamic_island">Dynamic Island (iPhone 14 Pro+)</option>
+                  <option value="circle_notch">Circle Notch</option>
+                  <option value="bar_notch">Wide Bar Notch</option>
+                  <option value="punch_hole">Android Punch Hole</option>
+                  <option value="flat">Android Flat Bezel</option>
+                  <option value="none">No Notch (Clean Edge)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Bezel Frame Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-phone-frame" value="#1C1C1E">
+                  <input type="text" id="text-phone-frame" value="#1C1C1E">
+                </div>
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Bezel Thickness (px)</label>
+                  <span id="label-val-phone-bezel">8</span>
+                </div>
+                <input type="range" id="slider-val-phone-bezel" min="2" max="24" step="1" value="8">
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Corner Radius (px)</label>
+                  <span id="label-val-phone-radius">38</span>
+                </div>
+                <input type="range" id="slider-val-phone-radius" min="10" max="60" step="1" value="38">
+              </div>
+              <div class="form-group inline-checkbox">
+                <input type="checkbox" id="checkbox-phone-shadow" checked>
+                <label for="checkbox-phone-shadow">Enable Phone Shadows</label>
+              </div>
+            </div>
+
+            <!-- Badge specific properties -->
+            <div class="properties-section hidden" id="section-prop-badge">
+              <h5 class="prop-section-title">Badge Properties</h5>
+              <div class="form-group">
+                <label for="input-badge-content">Badge Text</label>
+                <input type="text" id="input-badge-content" placeholder="NEW RELEASE">
+              </div>
+              <div class="form-group">
+                <label for="input-badge-icon">Emoji / Icon Character</label>
+                <input type="text" id="input-badge-icon" placeholder="★">
+              </div>
+              <div class="form-group">
+                <label>Background Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-badge-bg" value="#E8F5E9">
+                  <input type="text" id="text-badge-bg" value="#E8F5E9">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Text/Icon Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-badge-text" value="#1A6B4A">
+                  <input type="text" id="text-badge-text" value="#1A6B4A">
+                </div>
+              </div>
+            </div>
+
+            <!-- Feature Row specific properties -->
+            <div class="properties-section hidden" id="section-prop-feature-row">
+              <h5 class="prop-section-title">Feature Row</h5>
+              <div class="form-group">
+                <label for="input-feature-content">Feature Description</label>
+                <input type="text" id="input-feature-content" placeholder="Feature detail description...">
+              </div>
+              <div class="form-group">
+                <label for="input-feature-icon">Bullet Icon character</label>
+                <input type="text" id="input-feature-icon" placeholder="✔">
+              </div>
+              <div class="form-group">
+                <label>Bullet Background</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-feature-icon-bg" value="#E8F5E9">
+                  <input type="text" id="text-feature-icon-bg" value="#E8F5E9">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Bullet Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-feature-icon-color" value="#1A6B4A">
+                  <input type="text" id="text-feature-icon-color" value="#1A6B4A">
+                </div>
+              </div>
+            </div>
+
+            <!-- Frosted Panel specific properties -->
+            <div class="properties-section hidden" id="section-prop-frosted">
+              <h5 class="prop-section-title">Frosted Glass Effect</h5>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Blur Sigma</label>
+                  <span id="label-val-frosted-blur">12</span>
+                </div>
+                <input type="range" id="slider-val-frosted-blur" min="2" max="30" step="1" value="12">
+              </div>
+              <div class="form-group">
+                <label>Tint Color & Opacity</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-frosted-tint" value="#FFFFFF">
+                  <input type="text" id="text-frosted-tint" value="#FFFFFF">
+                </div>
+              </div>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label>Glass Opacity</label>
+                  <span id="label-val-frosted-opacity">50%</span>
+                </div>
+                <input type="range" id="slider-val-frosted-opacity" min="0.1" max="0.9" step="0.05" value="0.5">
+              </div>
+              <div class="form-group">
+                <label>Border Color</label>
+                <div class="color-picker-wrapper">
+                  <input type="color" id="picker-frosted-border" value="#FFFFFF">
+                  <input type="text" id="text-frosted-border" value="#FFFFFF">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Global Loading / Overlay Modal -->
+  <div class="loading-overlay hidden" id="app-loading-overlay">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <h4 id="loading-overlay-title">Saving Template...</h4>
+      <p id="loading-overlay-desc">Uploading assets to Firebase Storage</p>
+    </div>
+  </div>
+
+  <!-- Custom Alert Toast -->
+  <div class="toast-container" id="toast-wrapper"></div>
+
+  <!-- App Logic script -->
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
