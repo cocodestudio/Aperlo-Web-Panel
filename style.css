@@ -949,6 +949,111 @@ a {
   box-shadow: 0 0 0 4px var(--color-primary-glow);
 }
 
+.preview-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* Phone Mockup Frame & Screen Area Styling */
+.mockup-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.phone-bezel-frame {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-screen-area {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-screen-area > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.phone-notch-overlay {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  pointer-events: none;
+}
+
+.phone-notch-overlay.dynamic_island {
+  width: 90px;
+  height: 24px;
+  background-color: #000000;
+  border-radius: 20px;
+}
+
+.phone-notch-overlay.notch {
+  width: 120px;
+  height: 22px;
+  background-color: #000000;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Layer Elements Styling */
+.badge-element {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.feature-row-element {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.feature-item-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.feature-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Properties Sidebar Controls */
 .no-selection-placeholder {
   display: flex;
