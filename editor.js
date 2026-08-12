@@ -226,6 +226,16 @@ export function getLayerHtml(layer, index, isSelected) {
       const titleFontSize = Math.round(22 * scaleFactor);
       const contentGap = Math.round(8 * scaleFactor);
 
+      const screenImage = layer.image || layer.image_url || layer.screenshot || layer.screenshot_url;
+      const screenContent = screenImage 
+        ? `<img src="${screenImage}" style="width:100%; height:100%; object-fit:cover; position:absolute; inset:0; border-radius:inherit;">`
+        : `<div style="width:100%; height:100%; position:absolute; inset:0; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#1A6B4A; font-family:var(--font-display, 'Outfit', sans-serif); box-sizing:border-box; gap: ${contentGap}px; border-radius:inherit;">
+            <img src="logo.png" style="width:${logoSize}px; height:${logoSize}px; object-fit:cover; border-radius:50%;">
+            <div style="text-align:center; font-weight:600; font-size:${titleFontSize}px;">
+              Aperlo
+            </div>
+          </div>`;
+
       elementStyles += `
         height: ${frameHeight}px;
       `;
@@ -237,13 +247,7 @@ export function getLayerHtml(layer, index, isSelected) {
             ${notchHtml}
             
             <div class="phone-screen-area" style="border-radius: ${scaledScreenRadius}px;">
-              <!-- High-fidelity visual mockup layout placeholder -->
-              <div style="width:100%; height:100%; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#1A6B4A; font-family:var(--font-display, 'Outfit', sans-serif); box-sizing:border-box; gap: ${contentGap}px;">
-                <img src="logo.png" style="width:${logoSize}px; height:${logoSize}px; object-fit:cover; border-radius:50%;">
-                <div style="text-align:center; font-weight:600; font-size:${titleFontSize}px;">
-                  Aperlo
-                </div>
-              </div>
+              ${screenContent}
             </div>
           </div>
         </div>
