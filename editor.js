@@ -188,25 +188,58 @@ export function getLayerHtml(layer, index, isSelected) {
       const radius = layer.radius || 38;
       const enableShadow = layer.shadow !== false;
 
-      // Draw custom CSS mockup device bezel frame
+      // Calculate proportional scale factor relative to standard base mockup width (296.4px)
       const frameWidth = width;
       const frameHeight = width * (19.5 / 9); // iOS standard aspect ratio 19.5:9
+      const scaleFactor = frameWidth / 296.4;
       
+      const scaledBezel = bezel * scaleFactor;
+      const scaledRadius = radius * scaleFactor;
+      const scaledScreenRadius = Math.max(0, scaledRadius - scaledBezel / 2);
+
+      let notchHtml = "";
+      if (style === 'dynamic_island') {
+        const nw = Math.round(85 * scaleFactor);
+        const nh = Math.round(22 * scaleFactor);
+        const nt = Math.round(scaledBezel + 4);
+        const nr = Math.round(20 * scaleFactor);
+        notchHtml = `<div class="phone-notch-overlay dynamic_island" style="width:${nw}px; height:${nh}px; top:${nt}px; border-radius:${nr}px;"></div>`;
+      } else if (style === 'bar_notch') {
+        const nw = Math.round(110 * scaleFactor);
+        const nh = Math.round(20 * scaleFactor);
+        const nt = Math.round(scaledBezel);
+        const nr = Math.round(12 * scaleFactor);
+        notchHtml = `<div class="phone-notch-overlay bar_notch" style="width:${nw}px; height:${nh}px; top:${nt}px; border-bottom-left-radius:${nr}px; border-bottom-right-radius:${nr}px;"></div>`;
+      } else if (style === 'punch_hole') {
+        const nw = Math.round(14 * scaleFactor);
+        const nh = Math.round(14 * scaleFactor);
+        const nt = Math.round(scaledBezel + 6);
+        notchHtml = `<div class="phone-notch-overlay punch_hole" style="width:${nw}px; height:${nh}px; top:${nt}px; border-radius:50%;"></div>`;
+      } else if (style === 'flat') {
+        const nh = Math.round(4 * scaleFactor);
+        const nt = Math.round(scaledBezel);
+        notchHtml = `<div class="phone-notch-overlay flat" style="width:100%; height:${nh}px; top:${nt}px; border-radius:0;"></div>`;
+      }
+
+      const logoSize = Math.round(40 * scaleFactor);
+      const titleFontSize = Math.round(22 * scaleFactor);
+      const contentGap = Math.round(8 * scaleFactor);
+
       elementStyles += `
         height: ${frameHeight}px;
       `;
 
       innerContent = `
         <div class="mockup-container">
-          <div class="phone-bezel-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${radius}px; padding: ${bezel}px; background-color: ${frameColor}; ${enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;'}">
-            <!-- Simulated Notch cutout overlays -->
-            ${style !== 'none' ? `<div class="phone-notch-overlay ${style}"></div>` : ''}
+          <div class="phone-bezel-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${scaledRadius}px; padding: ${scaledBezel}px; background-color: ${frameColor}; ${enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;'}">
+            <!-- Simulated Notch cutout overlay -->
+            ${notchHtml}
             
-            <div class="phone-screen-area" style="border-radius: ${radius - bezel/2}px;">
+            <div class="phone-screen-area" style="border-radius: ${scaledScreenRadius}px;">
               <!-- High-fidelity visual mockup layout placeholder -->
-              <div style="width:100%; height:100%; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#1A6B4A; font-family:var(--font-display, 'Outfit', sans-serif); box-sizing:border-box; gap: 8px;">
-                <img src="logo.png" style="width:40px; height:40px; object-fit:cover; border-radius:50%;">
-                <div style="text-align:center; font-weight:600; font-size:24px;">
+              <div style="width:100%; height:100%; background:white; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#1A6B4A; font-family:var(--font-display, 'Outfit', sans-serif); box-sizing:border-box; gap: ${contentGap}px;">
+                <img src="logo.png" style="width:${logoSize}px; height:${logoSize}px; object-fit:cover; border-radius:50%;">
+                <div style="text-align:center; font-weight:600; font-size:${titleFontSize}px;">
                   Aperlo
                 </div>
               </div>
