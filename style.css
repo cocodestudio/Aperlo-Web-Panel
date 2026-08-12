@@ -1009,14 +1009,40 @@ a {
   height: 24px;
   background-color: #000000;
   border-radius: 20px;
+  top: 10px;
 }
 
-.phone-notch-overlay.notch {
+.phone-notch-overlay.circle_notch {
+  width: 28px;
+  height: 28px;
+  background-color: #000000;
+  border-radius: 50%;
+  top: 8px;
+}
+
+.phone-notch-overlay.bar_notch {
   width: 120px;
   height: 22px;
   background-color: #000000;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  top: 0;
+}
+
+.phone-notch-overlay.punch_hole {
+  width: 14px;
+  height: 14px;
+  background-color: #000000;
+  border-radius: 50%;
+  top: 12px;
+}
+
+.phone-notch-overlay.flat {
+  width: 100%;
+  height: 4px;
+  background-color: rgba(0, 0, 0, 0.4);
+  top: 0;
+  border-radius: 0;
 }
 
 /* Layer Elements Styling */
