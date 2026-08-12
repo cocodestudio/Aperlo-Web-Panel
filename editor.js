@@ -235,17 +235,17 @@ export function getLayerHtml(layer, index, isSelected) {
             </div>
           </div>`;
 
-      const depth = (layer.depth || 0) * scaleFactor;
+      const depth = layer.depth !== undefined ? Math.round(layer.depth) : 0;
       const depthColor = layer.depth_color || '#0F0F10';
 
       let shadowStyle = enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;';
       if (depth > 0) {
         const shadowLayers = [];
-        for (let i = 1; i <= Math.round(depth); i++) {
+        for (let i = 1; i <= depth; i++) {
           shadowLayers.push(`${i}px ${i}px 0px ${depthColor}`);
         }
         if (enableShadow) {
-          shadowLayers.push(`${Math.round(depth + 10)}px ${Math.round(depth + 20)}px 35px rgba(0,0,0,0.3)`);
+          shadowLayers.push(`${depth + 10}px ${depth + 20}px 35px rgba(0,0,0,0.3)`);
         }
         shadowStyle = `box-shadow: ${shadowLayers.join(', ')};`;
       }
