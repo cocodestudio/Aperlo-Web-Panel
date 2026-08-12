@@ -189,8 +189,9 @@ export function getLayerHtml(layer, index, isSelected) {
       const enableShadow = layer.shadow !== false;
 
       // Calculate proportional scale factor relative to standard base mockup width (296.4px)
+      const aspectRatio = layer.aspect_ratio || (19.5 / 9);
       const frameWidth = width;
-      const frameHeight = width * (19.5 / 9); // iOS standard aspect ratio 19.5:9
+      const frameHeight = width * aspectRatio;
       const scaleFactor = frameWidth / 296.4;
       
       const scaledBezel = bezel * scaleFactor;
@@ -676,6 +677,9 @@ export function selectLayer(index) {
     else if (targetLayer.type === 'phone') {
       document.getElementById("section-prop-phone").classList.remove("hidden");
       
+      const phoneAspectRatio = targetLayer.aspect_ratio || (19.5 / 9);
+      document.getElementById("slider-val-phone-height").value = phoneAspectRatio;
+      document.getElementById("label-val-phone-height").textContent = `${phoneAspectRatio.toFixed(2)}x`;
       document.getElementById("select-phone-style").value = targetLayer.style || "dynamic_island";
       document.getElementById("picker-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
       document.getElementById("text-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
@@ -1490,6 +1494,7 @@ Output strictly in JSON format matching this structure:
     updateSelectedLayerField("frame_color", color);
   });
 
+  bindSlider("slider-val-phone-height", "label-val-phone-height", "aspect_ratio", false, (v) => `${v.toFixed(2)}x`);
   bindSlider("slider-val-phone-bezel", "label-val-phone-bezel", "bezel");
   bindSlider("slider-val-phone-radius", "label-val-phone-radius", "radius");
 
