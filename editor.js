@@ -216,10 +216,6 @@ export function getLayerHtml(layer, index, isSelected) {
         const nh = Math.round(14 * scaleFactor);
         const nt = Math.round(scaledBezel + 6);
         notchHtml = `<div class="phone-notch-overlay punch_hole" style="width:${nw}px; height:${nh}px; top:${nt}px; border-radius:50%;"></div>`;
-      } else if (style === 'flat') {
-        const nh = Math.round(4 * scaleFactor);
-        const nt = Math.round(scaledBezel);
-        notchHtml = `<div class="phone-notch-overlay flat" style="width:100%; height:${nh}px; top:${nt}px; border-radius:0;"></div>`;
       }
 
       const logoSize = Math.round(40 * scaleFactor);
