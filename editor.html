@@ -219,10 +219,24 @@
               </div>
               <div class="slider-group" id="group-prop-rotation">
                 <div class="slider-header">
-                  <label>Rotation (degrees)</label>
+                  <label>Z-Axis Rotation (degrees)</label>
                   <span id="label-val-rotation">0°</span>
                 </div>
                 <input type="range" id="slider-val-rotation" min="-180" max="180" step="1" value="0">
+              </div>
+              <div class="slider-group" id="group-prop-rotation-x">
+                <div class="slider-header">
+                  <label>X-Axis 3D Tilt (degrees)</label>
+                  <span id="label-val-rotation-x">0°</span>
+                </div>
+                <input type="range" id="slider-val-rotation-x" min="-60" max="60" step="1" value="0">
+              </div>
+              <div class="slider-group" id="group-prop-rotation-y">
+                <div class="slider-header">
+                  <label>Y-Axis 3D Turn (degrees)</label>
+                  <span id="label-val-rotation-y">0°</span>
+                </div>
+                <input type="range" id="slider-val-rotation-y" min="-60" max="60" step="1" value="0">
               </div>
               <div class="slider-group" id="group-prop-opacity">
                 <div class="slider-header">
@@ -475,6 +489,13 @@
                   <span id="label-val-phone-height">2.17x</span>
                 </div>
                 <input type="range" id="slider-val-phone-height" min="1.0" max="3.0" step="0.05" value="2.17">
+              </div>
+              <div class="slider-group" id="group-prop-phone-depth">
+                <div class="slider-header">
+                  <label>3D Frame Depth (px)</label>
+                  <span id="label-val-phone-depth">0px</span>
+                </div>
+                <input type="range" id="slider-val-phone-depth" min="0" max="30" step="1" value="0">
               </div>
               <div class="slider-group">
                 <div class="slider-header">

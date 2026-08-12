@@ -136,7 +136,9 @@ export function getLayerHtml(layer, index, isSelected) {
   const width = (layer.width || 0.8) * 390;
   // height can be optional or computed based on aspect ratio/type
   const height = layer.height ? (layer.height * 844) : 'auto';
-  const rotation = layer.rotation || 0;
+  const rotZ = layer.rotation || 0;
+  const rotX = layer.rotation_x || 0;
+  const rotY = layer.rotation_y || 0;
   const opacity = layer.opacity !== undefined ? layer.opacity : 1;
 
   let innerContent = "";
@@ -146,7 +148,8 @@ export function getLayerHtml(layer, index, isSelected) {
     top: ${top}px;
     width: ${width}px;
     ${height !== 'auto' ? `height: ${height}px;` : ''}
-    transform: rotate(${rotation}deg);
+    transform: perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg) rotate(${rotZ}deg);
+    transform-style: preserve-3d;
     opacity: ${opacity};
     z-index: ${index + 1};
   `;
@@ -232,13 +235,28 @@ export function getLayerHtml(layer, index, isSelected) {
             </div>
           </div>`;
 
+      const depth = (layer.depth || 0) * scaleFactor;
+      const depthColor = layer.depth_color || '#0F0F10';
+
+      let shadowStyle = enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;';
+      if (depth > 0) {
+        const shadowLayers = [];
+        for (let i = 1; i <= Math.round(depth); i++) {
+          shadowLayers.push(`${i}px ${i}px 0px ${depthColor}`);
+        }
+        if (enableShadow) {
+          shadowLayers.push(`${Math.round(depth + 10)}px ${Math.round(depth + 20)}px 35px rgba(0,0,0,0.3)`);
+        }
+        shadowStyle = `box-shadow: ${shadowLayers.join(', ')};`;
+      }
+
       elementStyles += `
         height: ${frameHeight}px;
       `;
 
       innerContent = `
         <div class="mockup-container">
-          <div class="phone-bezel-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${scaledRadius}px; padding: ${scaledBezel}px; background-color: ${frameColor}; ${enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;'}">
+          <div class="phone-bezel-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${scaledRadius}px; padding: ${scaledBezel}px; background-color: ${frameColor}; ${shadowStyle}">
             <!-- Simulated Notch cutout overlay -->
             ${notchHtml}
             
@@ -643,6 +661,10 @@ export function selectLayer(index) {
 
     document.getElementById("slider-val-rotation").value = targetLayer.rotation || 0;
     document.getElementById("label-val-rotation").textContent = `${targetLayer.rotation || 0}°`;
+    document.getElementById("slider-val-rotation-x").value = targetLayer.rotation_x || 0;
+    document.getElementById("label-val-rotation-x").textContent = `${targetLayer.rotation_x || 0}°`;
+    document.getElementById("slider-val-rotation-y").value = targetLayer.rotation_y || 0;
+    document.getElementById("label-val-rotation-y").textContent = `${targetLayer.rotation_y || 0}°`;
     document.getElementById("slider-val-opacity").value = targetLayer.opacity !== undefined ? targetLayer.opacity : 1;
     document.getElementById("label-val-opacity").textContent = `${Math.round((targetLayer.opacity !== undefined ? targetLayer.opacity : 1) * 100)}%`;
 
@@ -680,6 +702,8 @@ export function selectLayer(index) {
       const phoneAspectRatio = targetLayer.aspect_ratio || (19.5 / 9);
       document.getElementById("slider-val-phone-height").value = phoneAspectRatio;
       document.getElementById("label-val-phone-height").textContent = `${phoneAspectRatio.toFixed(2)}x`;
+      document.getElementById("slider-val-phone-depth").value = targetLayer.depth || 0;
+      document.getElementById("label-val-phone-depth").textContent = `${targetLayer.depth || 0}px`;
       document.getElementById("select-phone-style").value = targetLayer.style || "dynamic_island";
       document.getElementById("picker-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
       document.getElementById("text-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
@@ -1317,6 +1341,18 @@ Output strictly in JSON format matching this structure:
       updateSelectedLayerField("rotation", val);
     });
 
+    document.getElementById("slider-val-rotation-x").addEventListener("input", (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById("label-val-rotation-x").textContent = `${val}°`;
+      updateSelectedLayerField("rotation_x", val);
+    });
+
+    document.getElementById("slider-val-rotation-y").addEventListener("input", (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById("label-val-rotation-y").textContent = `${val}°`;
+      updateSelectedLayerField("rotation_y", val);
+    });
+
     document.getElementById("slider-val-opacity").addEventListener("input", (e) => {
       const val = parseFloat(e.target.value);
       document.getElementById("label-val-opacity").textContent = `${Math.round(val * 100)}%`;
@@ -1495,6 +1531,7 @@ Output strictly in JSON format matching this structure:
   });
 
   bindSlider("slider-val-phone-height", "label-val-phone-height", "aspect_ratio", false, (v) => `${v.toFixed(2)}x`);
+  bindSlider("slider-val-phone-depth", "label-val-phone-depth", "depth", false, (v) => `${Math.round(v)}px`);
   bindSlider("slider-val-phone-bezel", "label-val-phone-bezel", "bezel");
   bindSlider("slider-val-phone-radius", "label-val-phone-radius", "radius");
 
