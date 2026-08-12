@@ -49,18 +49,34 @@
     <!-- ═══════════════════════════════════════════════════════════ -->
     <section id="view-dashboard" class="view-section">
 
-      <!-- Title scrolls away freely -->
+      <!-- Hero Header -->
       <div class="view-header">
+        <div class="hero-badge">
+          <i data-lucide="sparkles" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+          <span>Developer Template Studio</span>
+        </div>
         <h2>Template Library</h2>
-        <p>Manage, edit, and push templates to Aperlo Firestore</p>
+        <p>Craft, manage, and deploy high-fidelity app store screenshot templates</p>
+        
+        <div class="hero-metrics">
+          <div class="metric-chip"><i data-lucide="cloud" style="width: 13px; height: 13px;"></i> Firestore Synced</div>
+          <div class="metric-chip"><i data-lucide="lock" style="width: 13px; height: 13px;"></i> AES-256 Encrypted</div>
+          <div class="metric-chip"><i data-lucide="layers" style="width: 13px; height: 13px;"></i> Multi-Layer Engine</div>
+        </div>
       </div>
 
-      <!-- Tabs + chips stick at the top once title scrolls off -->
+      <!-- Sticky Tab & Category Filters Bar -->
       <div class="sticky-controls">
         <!-- Tab selectors -->
         <div class="tabs-bar">
-          <button class="tab-btn active" id="tab-cloud"><i data-lucide="cloud" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i> Firestore Templates</button>
-          <button class="tab-btn" id="tab-local"><i data-lucide="laptop" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i> Local Drafts</button>
+          <button class="tab-btn active" id="tab-cloud">
+            <i data-lucide="cloud" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i>
+            Firestore Templates
+          </button>
+          <button class="tab-btn" id="tab-local">
+            <i data-lucide="laptop" style="width:16px; height:16px; display:inline-block; vertical-align:middle; margin-right:6px;"></i>
+            Local Drafts
+          </button>
         </div>
 
         <!-- Categories filter chips -->
@@ -76,7 +92,7 @@
         </div>
       </div>
 
-      <!-- Template grid scrolls underneath -->
+      <!-- Template grid -->
       <div class="template-grid" id="dashboard-template-grid">
         <!-- Skeleton loaders loaded via Javascript -->
       </div>
