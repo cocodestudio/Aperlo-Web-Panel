@@ -52,16 +52,26 @@ export function loadTemplates() {
       state.templates = [];
       querySnapshot.forEach((doc) => {
         const rawData = doc.data();
+        let totalUses = 0;
+        if (typeof rawData.totalUses === 'number') {
+          totalUses = rawData.totalUses;
+        } else if (rawData.totalUses) {
+          totalUses = parseInt(rawData.totalUses, 10) || 0;
+        }
+
         if (rawData.encryptedData) {
           const decrypted = decryptTemplateData(rawData.encryptedData);
           if (decrypted) {
+            if (totalUses === 0 && typeof decrypted.totalUses === 'number') {
+              totalUses = decrypted.totalUses;
+            }
             state.templates.push({ 
+              ...decrypted,
               id: doc.id, 
-              category: rawData.category, 
-              thumbnailUrl: rawData.thumbnailUrl, 
-              totalUses: rawData.totalUses || 0,
-              createdAt: rawData.createdAt || null,
-              ...decrypted 
+              category: rawData.category || decrypted.category || "Minimal", 
+              thumbnailUrl: rawData.thumbnailUrl || decrypted.thumbnailUrl || "", 
+              createdAt: rawData.createdAt || decrypted.createdAt || null,
+              totalUses: totalUses
             });
           } else {
             console.error("Failed to decrypt template:", doc.id);
@@ -69,7 +79,7 @@ export function loadTemplates() {
         } else {
           state.templates.push({ 
             id: doc.id, 
-            totalUses: rawData.totalUses || 0,
+            totalUses: totalUses,
             ...rawData 
           });
         }
@@ -95,7 +105,7 @@ export function renderTemplatesGrid(categoryFilter = "All") {
     metricTemplates.innerHTML = `<i data-lucide="layout-grid" style="width: 13px; height: 13px;"></i> ${listToFilter.length} Templates`;
   }
   if (metricUses) {
-    const totalUsesSum = listToFilter.reduce((sum, t) => sum + (t.totalUses || 0), 0);
+    const totalUsesSum = listToFilter.reduce((sum, t) => sum + (typeof t.totalUses === 'number' ? t.totalUses : (parseInt(t.totalUses, 10) || 0)), 0);
     metricUses.innerHTML = `<i data-lucide="flame" style="width: 13px; height: 13px; color: #E5583A;"></i> ${totalUsesSum.toLocaleString()} Total Uses`;
   }
 
@@ -134,6 +144,8 @@ export function renderTemplatesGrid(categoryFilter = "All") {
       ? `<span class="card-category" style="background-color: var(--color-accent); color: white; margin-left: 6px;">Draft</span>`
       : '';
 
+    const usesCount = typeof template.totalUses === 'number' ? template.totalUses : (parseInt(template.totalUses, 10) || 0);
+
     card.innerHTML = `
       <button class="card-delete-btn" title="Delete Template"><i data-lucide="trash-2" style="width:14px; height:14px;"></i></button>
       <div class="card-thumbnail">
@@ -146,7 +158,7 @@ export function renderTemplatesGrid(categoryFilter = "All") {
             ${localLabel}
           </div>
           <div class="card-meta-right">
-            <span class="card-uses" title="Total Uses by App Creators"><i data-lucide="flame" style="width: 11px; height: 11px; color: #E5583A;"></i> ${(template.totalUses || 0).toLocaleString()}</span>
+            <span class="card-uses" title="Total Uses by App Creators"><i data-lucide="flame" style="width: 11px; height: 11px; color: #E5583A;"></i> ${usesCount.toLocaleString()}</span>
             <span class="card-slots"><i data-lucide="smartphone" style="width: 12px; height: 12px;"></i> ${template.screenshotSlots || 1}</span>
           </div>
         </div>
