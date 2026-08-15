@@ -433,10 +433,40 @@
                 <input type="file" id="input-svg-upload" accept=".svg" class="btn btn-secondary" style="width:100%; padding:8px; font-size:12px;">
               </div>
               <div class="form-group">
-                <label>Fill/Stroke Color</label>
+                <label for="select-shape-fill-type">Fill Mode</label>
+                <select id="select-shape-fill-type">
+                  <option value="solid">Solid Color</option>
+                  <option value="gradient">Linear Gradient</option>
+                </select>
+              </div>
+              <div class="form-group" id="group-shape-solid">
+                <label>Fill Color</label>
                 <div class="color-picker-wrapper">
                   <input type="color" id="picker-shape-color" value="#1A6B4A">
                   <input type="text" id="text-shape-color" value="#1A6B4A">
+                </div>
+              </div>
+              <div id="group-shape-gradient" class="hidden">
+                <div class="form-group">
+                  <label>Gradient Start Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-shape-grad-1" value="#1A6B4A">
+                    <input type="text" id="text-shape-grad-1" value="#1A6B4A">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Gradient End Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-shape-grad-2" value="#2E9F6E">
+                    <input type="text" id="text-shape-grad-2" value="#2E9F6E">
+                  </div>
+                </div>
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Gradient Angle</label>
+                    <span id="label-val-shape-grad-angle">135°</span>
+                  </div>
+                  <input type="range" id="slider-val-shape-grad-angle" min="0" max="360" step="5" value="135">
                 </div>
               </div>
               
@@ -519,9 +549,14 @@
                 </div>
                 <input type="range" id="slider-val-phone-radius" min="10" max="60" step="1" value="38">
               </div>
-              <div class="form-group inline-checkbox">
-                <input type="checkbox" id="checkbox-phone-shadow" checked>
-                <label for="checkbox-phone-shadow">Enable Phone Shadows</label>
+              <div class="form-group">
+                <label for="select-phone-shadow-style">Shadow & Elevation</label>
+                <select id="select-phone-shadow-style">
+                  <option value="floating_3d">☁️ 3D Floating (Air Suspension)</option>
+                  <option value="standard">📐 Standard Elevation</option>
+                  <option value="subtle">🌫️ Subtle Soft</option>
+                  <option value="none">❌ No Shadow</option>
+                </select>
               </div>
             </div>
 
