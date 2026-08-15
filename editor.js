@@ -1761,10 +1761,10 @@ Output strictly in JSON format matching this structure:
     bg.grid_color = color;
     renderPreview();
   });
-  bindSlider("slider-val-bg-grid-line-width", "label-val-bg-grid-line-width", "grid_line_width", true);
-  bindSlider("slider-val-bg-grid-spacing", "label-val-bg-grid-spacing", "grid_spacing", true);
-  bindSlider("slider-val-bg-grid-opacity", "label-val-bg-grid-opacity", "grid_opacity", true, (v) => `${Math.round(v * 100)}%`);
-  bindSlider("slider-val-bg-grid-angle", "label-val-bg-grid-angle", "grid_angle", true, (v) => `${v}°`);
+  bindSlider("slider-val-bg-grid-line-width", "label-val-bg-grid-line-width", "grid_line_width", false);
+  bindSlider("slider-val-bg-grid-spacing", "label-val-bg-grid-spacing", "grid_spacing", false);
+  bindSlider("slider-val-bg-grid-opacity", "label-val-bg-grid-opacity", "grid_opacity", false, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-grid-angle", "label-val-bg-grid-angle", "grid_angle", false, (v) => `${v}°`);
 
   // --- Dots Pickers & Sliders ---
   bindColorInput("picker-bg-dots-bg", "text-bg-dots-bg", (color) => {
@@ -1777,9 +1777,9 @@ Output strictly in JSON format matching this structure:
     bg.dot_color = color;
     renderPreview();
   });
-  bindSlider("slider-val-bg-dot-size", "label-val-bg-dot-size", "dot_size", true);
-  bindSlider("slider-val-bg-dot-spacing", "label-val-bg-dot-spacing", "dot_spacing", true);
-  bindSlider("slider-val-bg-dot-opacity", "label-val-bg-dot-opacity", "dot_opacity", true, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-dot-size", "label-val-bg-dot-size", "dot_size", false);
+  bindSlider("slider-val-bg-dot-spacing", "label-val-bg-dot-spacing", "dot_spacing", false);
+  bindSlider("slider-val-bg-dot-opacity", "label-val-bg-dot-opacity", "dot_opacity", false, (v) => `${Math.round(v * 100)}%`);
 
   // --- Stripes Pickers & Sliders ---
   bindColorInput("picker-bg-stripes-bg", "text-bg-stripes-bg", (color) => {
@@ -1792,10 +1792,10 @@ Output strictly in JSON format matching this structure:
     bg.stripe_color = color;
     renderPreview();
   });
-  bindSlider("slider-val-bg-stripe-width", "label-val-bg-stripe-width", "stripe_width", true);
-  bindSlider("slider-val-bg-stripe-spacing", "label-val-bg-stripe-spacing", "stripe_spacing", true);
-  bindSlider("slider-val-bg-stripe-opacity", "label-val-bg-stripe-opacity", "stripe_opacity", true, (v) => `${Math.round(v * 100)}%`);
-  bindSlider("slider-val-bg-stripe-angle", "label-val-bg-stripe-angle", "stripe_angle", true, (v) => `${v}°`);
+  bindSlider("slider-val-bg-stripe-width", "label-val-bg-stripe-width", "stripe_width", false);
+  bindSlider("slider-val-bg-stripe-spacing", "label-val-bg-stripe-spacing", "stripe_spacing", false);
+  bindSlider("slider-val-bg-stripe-opacity", "label-val-bg-stripe-opacity", "stripe_opacity", false, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-stripe-angle", "label-val-bg-stripe-angle", "stripe_angle", false, (v) => `${v}°`);
 
   // --- Rays Pickers & Sliders ---
   bindColorInput("picker-bg-rays-bg", "text-bg-rays-bg", (color) => {
@@ -1808,8 +1808,8 @@ Output strictly in JSON format matching this structure:
     bg.ray_color = color;
     renderPreview();
   });
-  bindSlider("slider-val-bg-ray-count", "label-val-bg-ray-count", "ray_count", true);
-  bindSlider("slider-val-bg-ray-opacity", "label-val-bg-ray-opacity", "ray_opacity", true, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-ray-count", "label-val-bg-ray-count", "ray_count", false);
+  bindSlider("slider-val-bg-ray-opacity", "label-val-bg-ray-opacity", "ray_opacity", false, (v) => `${Math.round(v * 100)}%`);
 
   // Color Pickers (Background)
   bindColorInput("picker-bg-solid", "text-bg-solid", (color) => {
@@ -1856,7 +1856,7 @@ Output strictly in JSON format matching this structure:
     renderPreview();
   });
 
-  bindSlider("slider-val-bg-split-at", "label-val-bg-split-at", "split_at", true);
+  bindSlider("slider-val-bg-split-at", "label-val-bg-split-at", "split_at", false);
 
   // Text Property Handlers
   if (document.getElementById("textarea-text-content")) {
