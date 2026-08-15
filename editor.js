@@ -324,7 +324,7 @@ export function getLayerHtml(layer, index, isSelected) {
 
     case 'shape':
       const sType = layer.shape_type || 'circle';
-      const isGradient = layer.fill_type === 'gradient' || (layer.gradient_colors && layer.gradient_colors.length >= 2);
+      const isGradient = layer.fill_type === 'gradient' || (layer.fill_type !== 'solid' && layer.gradient_colors && layer.gradient_colors.length >= 2);
       const gradColors = (layer.gradient_colors && layer.gradient_colors.length >= 2)
         ? layer.gradient_colors 
         : [layer.color || '#1A6B4A', layer.color_2 || '#2E9F6E'];
@@ -1648,9 +1648,58 @@ Output strictly in JSON format matching this structure:
     });
   }
 
+  safeAddListener("select-shape-fill-type", "change", (e) => {
+    const val = e.target.value;
+    const isGrad = val === "gradient";
+    updateSelectedLayerField("fill_type", val);
+    
+    if (isGrad) {
+      const c1 = document.getElementById("picker-shape-grad-1")?.value || "#1A6B4A";
+      const c2 = document.getElementById("picker-shape-grad-2")?.value || "#2E9F6E";
+      updateSelectedLayerField("gradient_colors", [c1, c2]);
+    } else {
+      const sCol = document.getElementById("picker-shape-color")?.value || "#1A6B4A";
+      updateSelectedLayerField("color", sCol);
+      if (state.selectedLayerIndex >= 0) {
+        delete state.currentTemplate.layout[state.selectedLayerIndex].gradient_colors;
+      }
+    }
+
+    const solidGroup = document.getElementById("group-shape-solid");
+    const gradGroup = document.getElementById("group-shape-gradient");
+    if (solidGroup) solidGroup.classList.toggle("hidden", isGrad);
+    if (gradGroup) gradGroup.classList.toggle("hidden", !isGrad);
+    
+    renderPreview();
+    saveTemplateDraft();
+  });
+
   bindColorInput("picker-shape-color", "text-shape-color", (color) => {
     updateSelectedLayerField("color", color);
+    if (state.selectedLayerIndex >= 0) {
+      state.currentTemplate.layout[state.selectedLayerIndex].fill_type = 'solid';
+      delete state.currentTemplate.layout[state.selectedLayerIndex].gradient_colors;
+    }
+    renderPreview();
   });
+
+  bindColorInput("picker-shape-grad-1", "text-shape-grad-1", (color) => {
+    const c2 = document.getElementById("picker-shape-grad-2")?.value || "#2E9F6E";
+    updateSelectedLayerField("fill_type", "gradient");
+    updateSelectedLayerField("color", color);
+    updateSelectedLayerField("gradient_colors", [color, c2]);
+    renderPreview();
+  });
+
+  bindColorInput("picker-shape-grad-2", "text-shape-grad-2", (color) => {
+    const c1 = document.getElementById("picker-shape-grad-1")?.value || "#1A6B4A";
+    updateSelectedLayerField("fill_type", "gradient");
+    updateSelectedLayerField("color_2", color);
+    updateSelectedLayerField("gradient_colors", [c1, color]);
+    renderPreview();
+  });
+
+  bindSlider("slider-val-shape-grad-angle", "label-val-shape-grad-angle", "gradient_angle", false, (v) => `${Math.round(v)}°`);
   
   // Custom SVG Upload Logic
   const svgInput = document.getElementById("input-svg-upload");
