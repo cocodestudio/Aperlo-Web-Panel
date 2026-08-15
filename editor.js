@@ -123,19 +123,99 @@ export function getLayerHtml(layer, index, isSelected) {
   
   // Background element is always positioned at 100% of canvas
   if (layer.type === 'background') {
+    const bgType = layer.bg_type || (layer.grid_spacing ? 'grid' : (layer.dot_spacing ? 'dots' : (layer.stripe_spacing ? 'stripes' : (layer.ray_count ? 'rays' : (layer.gradient ? 'linear' : (layer.split_at !== undefined ? 'split' : 'solid'))))));
     let bgStyle = "";
-    if (layer.gradient && layer.gradient.length >= 2) {
+    let innerSvg = "";
+
+    const baseColor = layer.bg_color || layer.color || "#FAF9F6";
+
+    if (bgType === 'grid') {
+      bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
+      const gridColor = layer.grid_color || layer.pattern_color || "#1A6B4A";
+      const opacity = layer.grid_opacity !== undefined ? layer.grid_opacity : 0.15;
+      const lineWidth = layer.grid_line_width || 1.5;
+      const spacing = layer.grid_spacing || 32;
+      const angle = layer.grid_angle || 0;
+
+      innerSvg = `
+        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+          <defs>
+            <pattern id="bg-grid-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse" patternTransform="rotate(${angle} 50 50)">
+              <path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>
+            </pattern>
+          </defs>
+          <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-grid-pattern-${index})"/>
+        </svg>`;
+    } else if (bgType === 'dots') {
+      bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
+      const dotColor = layer.dot_color || layer.pattern_color || "#1A6B4A";
+      const opacity = layer.dot_opacity !== undefined ? layer.dot_opacity : 0.20;
+      const dotSize = layer.dot_size || 3;
+      const spacing = layer.dot_spacing || 24;
+
+      innerSvg = `
+        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+          <defs>
+            <pattern id="bg-dots-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse">
+              <circle cx="${spacing/2}" cy="${spacing/2}" r="${dotSize/2}" fill="${dotColor}" fill-opacity="${opacity}"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#bg-dots-pattern-${index})"/>
+        </svg>`;
+    } else if (bgType === 'stripes') {
+      bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
+      const stripeColor = layer.stripe_color || layer.pattern_color || "#1A6B4A";
+      const opacity = layer.stripe_opacity !== undefined ? layer.stripe_opacity : 0.15;
+      const stripeWidth = layer.stripe_width || 8;
+      const spacing = layer.stripe_spacing || 28;
+      const angle = layer.stripe_angle !== undefined ? layer.stripe_angle : 45;
+      const step = spacing + stripeWidth;
+
+      innerSvg = `
+        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+          <defs>
+            <pattern id="bg-stripes-pattern-${index}" width="${step}" height="${step}" patternTransform="rotate(${angle} 50 50)" patternUnits="userSpaceOnUse">
+              <line x1="0" y1="0" x2="0" y2="${step}" stroke="${stripeColor}" stroke-width="${stripeWidth}" stroke-opacity="${opacity}"/>
+            </pattern>
+          </defs>
+          <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-stripes-pattern-${index})"/>
+        </svg>`;
+    } else if (bgType === 'rays') {
+      bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
+      const rayColor = layer.ray_color || layer.pattern_color || "#1A6B4A";
+      const opacity = layer.ray_opacity !== undefined ? layer.ray_opacity : 0.15;
+      const count = layer.ray_count || 16;
+      const stepDeg = 360 / count;
+
+      let rayPaths = "";
+      for (let r = 0; r < count; r += 2) {
+        const a1 = (r * stepDeg * Math.PI) / 180;
+        const a2 = ((r + 1) * stepDeg * Math.PI) / 180;
+        const radius = 2000;
+        const x1 = 500 + radius * Math.cos(a1);
+        const y1 = 500 + radius * Math.sin(a1);
+        const x2 = 500 + radius * Math.cos(a2);
+        const y2 = 500 + radius * Math.sin(a2);
+        rayPaths += `<path d="M 500 500 L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${radius} ${radius} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${rayColor}" fill-opacity="${opacity}"/>`;
+      }
+
+      innerSvg = `
+        <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+          ${rayPaths}
+        </svg>`;
+    } else if (bgType === 'linear' || (layer.gradient && layer.gradient.length >= 2)) {
+      const grad = layer.gradient || ['#0082FF', '#0040A3'];
       const beginCSS = ALIGNMENT_MAP[layer.begin] || "to bottom";
-      bgStyle = `background: linear-gradient(${beginCSS}, ${layer.gradient.join(", ")});`;
-    } else if (layer.split_at !== undefined) {
-      const splitPercent = (layer.split_at * 100) + "%";
+      bgStyle = `background: linear-gradient(${beginCSS}, ${grad.join(", ")});`;
+    } else if (bgType === 'split' || layer.split_at !== undefined) {
+      const splitPercent = ((layer.split_at !== undefined ? layer.split_at : 0.5) * 100) + "%";
       const topColor = layer.top_color || "#FAF9F6";
       const bottomColor = layer.bottom_color || "#F5F7F5";
       bgStyle = `background: linear-gradient(to bottom, ${topColor} ${splitPercent}, ${bottomColor} ${splitPercent});`;
     } else {
-      bgStyle = `background-color: ${layer.color || '#FAF9F6'};`;
+      bgStyle = `background-color: ${baseColor};`;
     }
-    return `<div class="preview-background" style="${bgStyle}" data-index="${index}"></div>`;
+    return `<div class="preview-background" style="${bgStyle}" data-index="${index}">${innerSvg}</div>`;
   }
 
   // Calculate absolute pixel coordinates from normalized fractions
@@ -960,23 +1040,112 @@ export function setupBackgroundPropsForm(layer) {
   const solidGroup = document.getElementById("group-bg-solid-color");
   const gradGroup = document.getElementById("group-bg-gradient");
   const splitGroup = document.getElementById("group-bg-split");
+  const gridGroup = document.getElementById("group-bg-grid");
+  const dotsGroup = document.getElementById("group-bg-dots");
+  const stripesGroup = document.getElementById("group-bg-stripes");
+  const raysGroup = document.getElementById("group-bg-rays");
 
-  solidGroup.classList.add("hidden");
-  gradGroup.classList.add("hidden");
-  splitGroup.classList.add("hidden");
+  if (solidGroup) solidGroup.classList.add("hidden");
+  if (gradGroup) gradGroup.classList.add("hidden");
+  if (splitGroup) splitGroup.classList.add("hidden");
+  if (gridGroup) gridGroup.classList.add("hidden");
+  if (dotsGroup) dotsGroup.classList.add("hidden");
+  if (stripesGroup) stripesGroup.classList.add("hidden");
+  if (raysGroup) raysGroup.classList.add("hidden");
 
-  if (layer.gradient && layer.gradient.length >= 2) {
+  const bgType = layer.bg_type || (layer.grid_spacing ? 'grid' : (layer.dot_spacing ? 'dots' : (layer.stripe_spacing ? 'stripes' : (layer.ray_count ? 'rays' : (layer.gradient ? 'linear' : (layer.split_at !== undefined ? 'split' : 'solid'))))));
+
+  if (bgType === 'grid') {
+    typeSelect.value = "grid";
+    if (gridGroup) gridGroup.classList.remove("hidden");
+    const bgCol = layer.bg_color || layer.color || "#FAF9F6";
+    const lineCol = layer.grid_color || layer.pattern_color || "#1A6B4A";
+    const lineWidth = layer.grid_line_width || 1.5;
+    const spacing = layer.grid_spacing || 32;
+    const opacity = layer.grid_opacity !== undefined ? layer.grid_opacity : 0.15;
+    const angle = layer.grid_angle || 0;
+
+    if (document.getElementById("picker-bg-grid-bg")) document.getElementById("picker-bg-grid-bg").value = bgCol;
+    if (document.getElementById("text-bg-grid-bg")) document.getElementById("text-bg-grid-bg").value = bgCol;
+    if (document.getElementById("picker-bg-grid-line")) document.getElementById("picker-bg-grid-line").value = lineCol;
+    if (document.getElementById("text-bg-grid-line")) document.getElementById("text-bg-grid-line").value = lineCol;
+    if (document.getElementById("slider-val-bg-grid-line-width")) document.getElementById("slider-val-bg-grid-line-width").value = lineWidth;
+    if (document.getElementById("label-val-bg-grid-line-width")) document.getElementById("label-val-bg-grid-line-width").textContent = lineWidth;
+    if (document.getElementById("slider-val-bg-grid-spacing")) document.getElementById("slider-val-bg-grid-spacing").value = spacing;
+    if (document.getElementById("label-val-bg-grid-spacing")) document.getElementById("label-val-bg-grid-spacing").textContent = spacing;
+    if (document.getElementById("slider-val-bg-grid-opacity")) document.getElementById("slider-val-bg-grid-opacity").value = opacity;
+    if (document.getElementById("label-val-bg-grid-opacity")) document.getElementById("label-val-bg-grid-opacity").textContent = `${Math.round(opacity * 100)}%`;
+    if (document.getElementById("slider-val-bg-grid-angle")) document.getElementById("slider-val-bg-grid-angle").value = angle;
+    if (document.getElementById("label-val-bg-grid-angle")) document.getElementById("label-val-bg-grid-angle").textContent = `${angle}°`;
+  } else if (bgType === 'dots') {
+    typeSelect.value = "dots";
+    if (dotsGroup) dotsGroup.classList.remove("hidden");
+    const bgCol = layer.bg_color || layer.color || "#FAF9F6";
+    const dotCol = layer.dot_color || layer.pattern_color || "#1A6B4A";
+    const dotSize = layer.dot_size || 3.0;
+    const spacing = layer.dot_spacing || 24;
+    const opacity = layer.dot_opacity !== undefined ? layer.dot_opacity : 0.20;
+
+    if (document.getElementById("picker-bg-dots-bg")) document.getElementById("picker-bg-dots-bg").value = bgCol;
+    if (document.getElementById("text-bg-dots-bg")) document.getElementById("text-bg-dots-bg").value = bgCol;
+    if (document.getElementById("picker-bg-dots-color")) document.getElementById("picker-bg-dots-color").value = dotCol;
+    if (document.getElementById("text-bg-dots-color")) document.getElementById("text-bg-dots-color").value = dotCol;
+    if (document.getElementById("slider-val-bg-dot-size")) document.getElementById("slider-val-bg-dot-size").value = dotSize;
+    if (document.getElementById("label-val-bg-dot-size")) document.getElementById("label-val-bg-dot-size").textContent = dotSize;
+    if (document.getElementById("slider-val-bg-dot-spacing")) document.getElementById("slider-val-bg-dot-spacing").value = spacing;
+    if (document.getElementById("label-val-bg-dot-spacing")) document.getElementById("label-val-bg-dot-spacing").textContent = spacing;
+    if (document.getElementById("slider-val-bg-dot-opacity")) document.getElementById("slider-val-bg-dot-opacity").value = opacity;
+    if (document.getElementById("label-val-bg-dot-opacity")) document.getElementById("label-val-bg-dot-opacity").textContent = `${Math.round(opacity * 100)}%`;
+  } else if (bgType === 'stripes') {
+    typeSelect.value = "stripes";
+    if (stripesGroup) stripesGroup.classList.remove("hidden");
+    const bgCol = layer.bg_color || layer.color || "#FAF9F6";
+    const stripeCol = layer.stripe_color || layer.pattern_color || "#1A6B4A";
+    const width = layer.stripe_width || 8;
+    const spacing = layer.stripe_spacing || 28;
+    const opacity = layer.stripe_opacity !== undefined ? layer.stripe_opacity : 0.15;
+    const angle = layer.stripe_angle !== undefined ? layer.stripe_angle : 45;
+
+    if (document.getElementById("picker-bg-stripes-bg")) document.getElementById("picker-bg-stripes-bg").value = bgCol;
+    if (document.getElementById("text-bg-stripes-bg")) document.getElementById("text-bg-stripes-bg").value = bgCol;
+    if (document.getElementById("picker-bg-stripes-color")) document.getElementById("picker-bg-stripes-color").value = stripeCol;
+    if (document.getElementById("text-bg-stripes-color")) document.getElementById("text-bg-stripes-color").value = stripeCol;
+    if (document.getElementById("slider-val-bg-stripe-width")) document.getElementById("slider-val-bg-stripe-width").value = width;
+    if (document.getElementById("label-val-bg-stripe-width")) document.getElementById("label-val-bg-stripe-width").textContent = width;
+    if (document.getElementById("slider-val-bg-stripe-spacing")) document.getElementById("slider-val-bg-stripe-spacing").value = spacing;
+    if (document.getElementById("label-val-bg-stripe-spacing")) document.getElementById("label-val-bg-stripe-spacing").textContent = spacing;
+    if (document.getElementById("slider-val-bg-stripe-opacity")) document.getElementById("slider-val-bg-stripe-opacity").value = opacity;
+    if (document.getElementById("label-val-bg-stripe-opacity")) document.getElementById("label-val-bg-stripe-opacity").textContent = `${Math.round(opacity * 100)}%`;
+    if (document.getElementById("slider-val-bg-stripe-angle")) document.getElementById("slider-val-bg-stripe-angle").value = angle;
+    if (document.getElementById("label-val-bg-stripe-angle")) document.getElementById("label-val-bg-stripe-angle").textContent = `${angle}°`;
+  } else if (bgType === 'rays') {
+    typeSelect.value = "rays";
+    if (raysGroup) raysGroup.classList.remove("hidden");
+    const bgCol = layer.bg_color || layer.color || "#FAF9F6";
+    const rayCol = layer.ray_color || layer.pattern_color || "#1A6B4A";
+    const count = layer.ray_count || 16;
+    const opacity = layer.ray_opacity !== undefined ? layer.ray_opacity : 0.15;
+
+    if (document.getElementById("picker-bg-rays-bg")) document.getElementById("picker-bg-rays-bg").value = bgCol;
+    if (document.getElementById("text-bg-rays-bg")) document.getElementById("text-bg-rays-bg").value = bgCol;
+    if (document.getElementById("picker-bg-rays-color")) document.getElementById("picker-bg-rays-color").value = rayCol;
+    if (document.getElementById("text-bg-rays-color")) document.getElementById("text-bg-rays-color").value = rayCol;
+    if (document.getElementById("slider-val-bg-ray-count")) document.getElementById("slider-val-bg-ray-count").value = count;
+    if (document.getElementById("label-val-bg-ray-count")) document.getElementById("label-val-bg-ray-count").textContent = count;
+    if (document.getElementById("slider-val-bg-ray-opacity")) document.getElementById("slider-val-bg-ray-opacity").value = opacity;
+    if (document.getElementById("label-val-bg-ray-opacity")) document.getElementById("label-val-bg-ray-opacity").textContent = `${Math.round(opacity * 100)}%`;
+  } else if (bgType === 'linear' || (layer.gradient && layer.gradient.length >= 2)) {
     typeSelect.value = "linear";
-    gradGroup.classList.remove("hidden");
-    document.getElementById("picker-bg-grad-start").value = layer.gradient[0];
-    document.getElementById("text-bg-grad-start").value = layer.gradient[0];
-    document.getElementById("picker-bg-grad-end").value = layer.gradient[1];
-    document.getElementById("text-bg-grad-end").value = layer.gradient[1];
+    if (gradGroup) gradGroup.classList.remove("hidden");
+    document.getElementById("picker-bg-grad-start").value = layer.gradient ? layer.gradient[0] : "#0082FF";
+    document.getElementById("text-bg-grad-start").value = layer.gradient ? layer.gradient[0] : "#0082FF";
+    document.getElementById("picker-bg-grad-end").value = layer.gradient ? layer.gradient[1] : "#0040A3";
+    document.getElementById("text-bg-grad-end").value = layer.gradient ? layer.gradient[1] : "#0040A3";
     document.getElementById("select-bg-grad-begin").value = layer.begin || "topCenter";
     document.getElementById("select-bg-grad-end-dir").value = layer.end || "bottomCenter";
-  } else if (layer.split_at !== undefined) {
+  } else if (bgType === 'split' || layer.split_at !== undefined) {
     typeSelect.value = "split";
-    splitGroup.classList.remove("hidden");
+    if (splitGroup) splitGroup.classList.remove("hidden");
     document.getElementById("picker-bg-split-top").value = layer.top_color || "#FAF9F6";
     document.getElementById("text-bg-split-top").value = layer.top_color || "#FAF9F6";
     document.getElementById("picker-bg-split-bottom").value = layer.bottom_color || "#F5F7F5";
@@ -985,7 +1154,7 @@ export function setupBackgroundPropsForm(layer) {
     document.getElementById("label-val-bg-split-at").textContent = layer.split_at || 0.5;
   } else {
     typeSelect.value = "solid";
-    solidGroup.classList.remove("hidden");
+    if (solidGroup) solidGroup.classList.remove("hidden");
     document.getElementById("picker-bg-solid").value = layer.color || "#FAF9F6";
     document.getElementById("text-bg-solid").value = layer.color || "#FAF9F6";
   }
@@ -1536,12 +1705,39 @@ Output strictly in JSON format matching this structure:
       delete bgLayer.top_color;
       delete bgLayer.bottom_color;
 
+      bgLayer.bg_type = val;
+
       if (val === 'solid') {
         bgLayer.color = "#FAF9F6";
       } else if (val === 'linear') {
         bgLayer.gradient = ["#0082FF", "#0040A3"];
         bgLayer.begin = "topCenter";
         bgLayer.end = "bottomCenter";
+      } else if (val === 'grid') {
+        bgLayer.bg_color = "#FAF9F6";
+        bgLayer.grid_color = "#1A6B4A";
+        bgLayer.grid_line_width = 1.5;
+        bgLayer.grid_spacing = 32;
+        bgLayer.grid_opacity = 0.15;
+        bgLayer.grid_angle = 0;
+      } else if (val === 'dots') {
+        bgLayer.bg_color = "#FAF9F6";
+        bgLayer.dot_color = "#1A6B4A";
+        bgLayer.dot_size = 3.0;
+        bgLayer.dot_spacing = 24;
+        bgLayer.dot_opacity = 0.20;
+      } else if (val === 'stripes') {
+        bgLayer.bg_color = "#FAF9F6";
+        bgLayer.stripe_color = "#1A6B4A";
+        bgLayer.stripe_width = 8;
+        bgLayer.stripe_spacing = 28;
+        bgLayer.stripe_opacity = 0.15;
+        bgLayer.stripe_angle = 45;
+      } else if (val === 'rays') {
+        bgLayer.bg_color = "#FAF9F6";
+        bgLayer.ray_color = "#1A6B4A";
+        bgLayer.ray_count = 16;
+        bgLayer.ray_opacity = 0.15;
       } else if (val === 'split') {
         bgLayer.split_at = 0.5;
         bgLayer.top_color = "#FAF9F6";
@@ -1553,6 +1749,67 @@ Output strictly in JSON format matching this structure:
       saveTemplateDraft();
     });
   }
+
+  // --- Grid Pickers & Sliders ---
+  bindColorInput("picker-bg-grid-bg", "text-bg-grid-bg", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.bg_color = color;
+    renderPreview();
+  });
+  bindColorInput("picker-bg-grid-line", "text-bg-grid-line", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.grid_color = color;
+    renderPreview();
+  });
+  bindSlider("slider-val-bg-grid-line-width", "label-val-bg-grid-line-width", "grid_line_width", true);
+  bindSlider("slider-val-bg-grid-spacing", "label-val-bg-grid-spacing", "grid_spacing", true);
+  bindSlider("slider-val-bg-grid-opacity", "label-val-bg-grid-opacity", "grid_opacity", true, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-grid-angle", "label-val-bg-grid-angle", "grid_angle", true, (v) => `${v}°`);
+
+  // --- Dots Pickers & Sliders ---
+  bindColorInput("picker-bg-dots-bg", "text-bg-dots-bg", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.bg_color = color;
+    renderPreview();
+  });
+  bindColorInput("picker-bg-dots-color", "text-bg-dots-color", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.dot_color = color;
+    renderPreview();
+  });
+  bindSlider("slider-val-bg-dot-size", "label-val-bg-dot-size", "dot_size", true);
+  bindSlider("slider-val-bg-dot-spacing", "label-val-bg-dot-spacing", "dot_spacing", true);
+  bindSlider("slider-val-bg-dot-opacity", "label-val-bg-dot-opacity", "dot_opacity", true, (v) => `${Math.round(v * 100)}%`);
+
+  // --- Stripes Pickers & Sliders ---
+  bindColorInput("picker-bg-stripes-bg", "text-bg-stripes-bg", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.bg_color = color;
+    renderPreview();
+  });
+  bindColorInput("picker-bg-stripes-color", "text-bg-stripes-color", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.stripe_color = color;
+    renderPreview();
+  });
+  bindSlider("slider-val-bg-stripe-width", "label-val-bg-stripe-width", "stripe_width", true);
+  bindSlider("slider-val-bg-stripe-spacing", "label-val-bg-stripe-spacing", "stripe_spacing", true);
+  bindSlider("slider-val-bg-stripe-opacity", "label-val-bg-stripe-opacity", "stripe_opacity", true, (v) => `${Math.round(v * 100)}%`);
+  bindSlider("slider-val-bg-stripe-angle", "label-val-bg-stripe-angle", "stripe_angle", true, (v) => `${v}°`);
+
+  // --- Rays Pickers & Sliders ---
+  bindColorInput("picker-bg-rays-bg", "text-bg-rays-bg", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.bg_color = color;
+    renderPreview();
+  });
+  bindColorInput("picker-bg-rays-color", "text-bg-rays-color", (color) => {
+    const bg = state.currentTemplate.layout.find(l => l.type === 'background');
+    bg.ray_color = color;
+    renderPreview();
+  });
+  bindSlider("slider-val-bg-ray-count", "label-val-bg-ray-count", "ray_count", true);
+  bindSlider("slider-val-bg-ray-opacity", "label-val-bg-ray-opacity", "ray_opacity", true, (v) => `${Math.round(v * 100)}%`);
 
   // Color Pickers (Background)
   bindColorInput("picker-bg-solid", "text-bg-solid", (color) => {
