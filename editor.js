@@ -792,7 +792,7 @@ export function selectLayer(index) {
   container.classList.remove("hidden");
 
   // Show/Hide property control categories based on type
-  const targetLayer = index === -2 
+  const targetLayer = (index === -2 || (index >= 0 && state.currentTemplate.layout[index]?.type === 'background'))
     ? state.currentTemplate.layout.find(l => l.type === 'background')
     : state.currentTemplate.layout[index];
 
@@ -808,7 +808,7 @@ export function selectLayer(index) {
   document.getElementById("section-prop-feature-row").classList.add("hidden");
   document.getElementById("section-prop-frosted").classList.add("hidden");
 
-  if (index === -2) {
+  if (index === -2 || (targetLayer && targetLayer.type === 'background')) {
     // Background properties
     document.getElementById("section-prop-background").classList.remove("hidden");
     setupBackgroundPropsForm(targetLayer);
@@ -2091,7 +2091,16 @@ function updateCanvasZoom() {
 }
 
 function updateSelectedLayerField(field, value) {
-  if (state.selectedLayerIndex < 0) return;
+  if (state.selectedLayerIndex === -1) return;
+  if (state.selectedLayerIndex === -2) {
+    const bgLayer = state.currentTemplate.layout.find(l => l.type === 'background');
+    if (bgLayer) {
+      bgLayer[field] = value;
+      renderPreview();
+      saveTemplateDraft();
+    }
+    return;
+  }
   state.currentTemplate.layout[state.selectedLayerIndex][field] = value;
   renderPreview();
   saveTemplateDraft();
