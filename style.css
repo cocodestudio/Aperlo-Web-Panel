@@ -986,7 +986,16 @@ a {
 /* Layer element interactive bounds */
 .preview-layer {
   cursor: move;
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: none;
   transition: box-shadow 0.15s ease;
+}
+
+.preview-layer * {
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none !important;
 }
 
 .preview-layer.selected-element {

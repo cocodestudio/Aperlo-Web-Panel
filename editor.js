@@ -246,16 +246,38 @@ export function getLayerHtml(layer, index, isSelected) {
       const depth = layer.depth !== undefined ? Math.round(layer.depth) : 0;
       const depthColor = layer.depth_color || '#0F0F10';
 
-      let shadowStyle = enableShadow ? 'box-shadow: 0 15px 35px rgba(0,0,0,0.25);' : 'box-shadow: none;';
+      const shadowStyleChoice = layer.shadow_style || (layer.shadow_3d ? 'floating_3d' : (layer.shadow !== false ? 'floating_3d' : 'none'));
+      let shadowStyle = 'box-shadow: none;';
+      const depthShadows = [];
       if (depth > 0) {
-        const shadowLayers = [];
         for (let i = 1; i <= depth; i++) {
-          shadowLayers.push(`${i}px ${i}px 0px ${depthColor}`);
+          depthShadows.push(`${i}px ${i}px 0px ${depthColor}`);
         }
-        if (enableShadow) {
-          shadowLayers.push(`${depth + 10}px ${depth + 20}px 35px rgba(0,0,0,0.3)`);
-        }
-        shadowStyle = `box-shadow: ${shadowLayers.join(', ')};`;
+      }
+
+      if (shadowStyleChoice === 'floating_3d') {
+        const sf = scaleFactor;
+        const d = depth > 0 ? depth : 0;
+        const floatingLayers = [
+          `0 ${Math.round(34 * sf + d)}px ${Math.round(68 * sf)}px -${Math.round(8 * sf)}px rgba(0, 0, 0, 0.42)`,
+          `0 ${Math.round(18 * sf + d)}px ${Math.round(36 * sf)}px -${Math.round(4 * sf)}px rgba(0, 0, 0, 0.28)`,
+          `0 ${Math.round(6 * sf + d)}px ${Math.round(12 * sf)}px 0px rgba(0, 0, 0, 0.16)`
+        ];
+        shadowStyle = `box-shadow: ${[...depthShadows, ...floatingLayers].join(', ')};`;
+      } else if (shadowStyleChoice === 'standard') {
+        const sf = scaleFactor;
+        const d = depth > 0 ? depth : 0;
+        const stdLayers = [
+          `0 ${Math.round(16 * sf + d)}px ${Math.round(32 * sf)}px rgba(0, 0, 0, 0.25)`,
+          `0 ${Math.round(4 * sf + d)}px ${Math.round(8 * sf)}px rgba(0, 0, 0, 0.12)`
+        ];
+        shadowStyle = `box-shadow: ${[...depthShadows, ...stdLayers].join(', ')};`;
+      } else if (shadowStyleChoice === 'subtle') {
+        const sf = scaleFactor;
+        const d = depth > 0 ? depth : 0;
+        shadowStyle = `box-shadow: ${[...depthShadows, `0 ${Math.round(8 * sf + d)}px ${Math.round(16 * sf)}px rgba(0, 0, 0, 0.15)`].join(', ')};`;
+      } else if (depthShadows.length > 0) {
+        shadowStyle = `box-shadow: ${depthShadows.join(', ')};`;
       }
 
       elementStyles += `
@@ -278,7 +300,13 @@ export function getLayerHtml(layer, index, isSelected) {
 
     case 'shape':
       const sType = layer.shape_type || 'circle';
+      const isGradient = layer.fill_type === 'gradient' || (layer.gradient_colors && layer.gradient_colors.length >= 2);
+      const gradColors = (layer.gradient_colors && layer.gradient_colors.length >= 2)
+        ? layer.gradient_colors 
+        : [layer.color || '#1A6B4A', layer.color_2 || '#2E9F6E'];
       const sColor = layer.color || '#1A6B4A';
+      const gradAngle = layer.gradient_angle !== undefined ? Number(layer.gradient_angle) : 135;
+
       const shapeWidth = width;
       // if height is auto or missing, match width (square bounding box for circles/stars)
       const shapeHeight = height !== 'auto' ? height : shapeWidth;
@@ -287,11 +315,33 @@ export function getLayerHtml(layer, index, isSelected) {
         height: ${shapeHeight}px;
       `;
 
+      const angleRad = (gradAngle - 90) * (Math.PI / 180);
+      const x1 = Math.round(50 + 50 * Math.cos(angleRad + Math.PI));
+      const y1 = Math.round(50 + 50 * Math.sin(angleRad + Math.PI));
+      const x2 = Math.round(50 + 50 * Math.cos(angleRad));
+      const y2 = Math.round(50 + 50 * Math.sin(angleRad));
+      const gradId = `shapeGrad_${index}_${Math.abs(Math.round(gradAngle))}`;
+
+      const defsCode = isGradient ? `
+        <defs>
+          <linearGradient id="${gradId}" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">
+            <stop offset="0%" stop-color="${gradColors[0]}" />
+            <stop offset="100%" stop-color="${gradColors[1]}" />
+          </linearGradient>
+        </defs>
+      ` : '';
+
+      const fillValue = isGradient ? `url(#${gradId})` : sColor;
+      const strokeValue = isGradient ? `url(#${gradId})` : sColor;
+
       let svgCode = "";
       if (sType === 'svg' && layer.svg_content) {
         const encodedSvg = encodeURIComponent(layer.svg_content).replace(/'/g, "%27").replace(/"/g, "%22");
+        const bgCSS = isGradient 
+          ? `linear-gradient(${gradAngle}deg, ${gradColors[0]}, ${gradColors[1]})` 
+          : sColor;
         innerContent = `
-          <div style="width: 100%; height: 100%; background-color: ${sColor}; 
+          <div style="width: 100%; height: 100%; background: ${bgCSS}; 
                -webkit-mask: url('data:image/svg+xml;utf8,${encodedSvg}') no-repeat center; 
                -webkit-mask-size: contain; 
                mask: url('data:image/svg+xml;utf8,${encodedSvg}') no-repeat center; 
@@ -300,57 +350,56 @@ export function getLayerHtml(layer, index, isSelected) {
         `;
       } else {
         if (sType === 'circle') {
-        svgCode = `<circle cx="50" cy="50" r="48" fill="${sColor}" />`;
-      } else if (sType === 'rect') {
-        svgCode = `<rect x="2" y="2" width="96" height="96" fill="${sColor}" />`;
-      } else if (sType === 'rounded_rect') {
-        const rad = layer.corner_radius || 16;
-        // corner radius is mapped as ratio or percentage relative to width
-        svgCode = `<rect x="2" y="2" width="96" height="96" rx="${rad}" ry="${rad}" fill="${sColor}" />`;
-      } else if (sType === 'ring') {
-        const strokeW = layer.stroke_width || 8;
-        svgCode = `<circle cx="50" cy="50" r="${50 - strokeW}" fill="none" stroke="${sColor}" stroke-width="${strokeW}" />`;
-      } else if (sType === 'arc') {
-        svgCode = `<path d="M 50,10 A 40,40 0 0,1 90,50 L 50,50 Z" fill="${sColor}" />`;
-      } else if (sType === 'polygon') {
-        const sides = layer.sides || 6;
-        let points = [];
-        for (let i = 0; i < sides; i++) {
-          const angle = (i * 2 * Math.PI / sides) - Math.PI / 2;
-          const x = 50 + 46 * Math.cos(angle);
-          const y = 50 + 46 * Math.sin(angle);
-          points.push(`${x},${y}`);
+          svgCode = `<circle cx="50" cy="50" r="48" fill="${fillValue}" />`;
+        } else if (sType === 'rect') {
+          svgCode = `<rect x="2" y="2" width="96" height="96" fill="${fillValue}" />`;
+        } else if (sType === 'rounded_rect') {
+          const rad = layer.corner_radius || 16;
+          svgCode = `<rect x="2" y="2" width="96" height="96" rx="${rad}" ry="${rad}" fill="${fillValue}" />`;
+        } else if (sType === 'ring') {
+          const strokeW = layer.stroke_width || 8;
+          svgCode = `<circle cx="50" cy="50" r="${50 - strokeW}" fill="none" stroke="${strokeValue}" stroke-width="${strokeW}" />`;
+        } else if (sType === 'arc') {
+          svgCode = `<path d="M 50,10 A 40,40 0 0,1 90,50 L 50,50 Z" fill="${fillValue}" />`;
+        } else if (sType === 'polygon') {
+          const sides = layer.sides || 6;
+          let points = [];
+          for (let i = 0; i < sides; i++) {
+            const angle = (i * 2 * Math.PI / sides) - Math.PI / 2;
+            const x = 50 + 46 * Math.cos(angle);
+            const y = 50 + 46 * Math.sin(angle);
+            points.push(`${x},${y}`);
+          }
+          svgCode = `<polygon points="${points.join(' ')}" fill="${fillValue}" />`;
+        } else if (sType === 'star') {
+          const points = layer.points || 5;
+          let coords = [];
+          for (let i = 0; i < points * 2; i++) {
+            const r = i % 2 === 0 ? 46 : 20;
+            const angle = (i * Math.PI / points) - Math.PI / 2;
+            const x = 50 + r * Math.cos(angle);
+            const y = 50 + r * Math.sin(angle);
+            coords.push(`${x},${y}`);
+          }
+          svgCode = `<polygon points="${coords.join(' ')}" fill="${fillValue}" />`;
+        } else if (sType === 'diamond') {
+          svgCode = `<polygon points="50,4 96,50 50,96 4,50" fill="${fillValue}" />`;
+        } else if (sType === 'heart') {
+          svgCode = `<path d="M 50,30 A 20,20,0,0,1,90,30 A 20,20,0,0,1,50,70 A 20,20,0,0,1,10,30 A 20,20,0,0,1,50,30 Z" transform="translate(0, 10)" fill="${fillValue}" />`;
+        } else if (sType === 'cross') {
+          svgCode = `<polygon points="40,4 60,4 60,40 96,40 96,60 60,60 60,96 40,96 40,60 4,60 4,40 40,40" fill="${fillValue}" />`;
+        } else if (sType === 'diagonal_split') {
+          svgCode = `<polygon points="0,0 100,0 0,100" fill="${fillValue}" /><polygon points="100,0 100,100 0,100" fill="${layer.color2 || '#2E9F6E'}" opacity="0.8" />`;
+        } else if (sType === 'blob') {
+          svgCode = `<path d="M25,-32.8C33.3,-29.4,41.6,-22.9,46,-14.2C50.5,-5.5,51,5.5,47,15.1C43,24.7,34.4,32.8,25,37.3C15.6,41.8,5.3,42.7,-4.8,40.4C-14.8,38.1,-24.6,32.7,-32.1,25C-39.7,17.4,-44.9,7.6,-46.1,-3.1C-47.3,-13.7,-44.4,-25.1,-37.2,-31C-30,-37,-18.6,-37.4,-8.6,-38.7C1.5,-40.1,16.8,-36.2,25,-32.8Z" transform="translate(50 50) scale(0.9)" fill="${fillValue}" />`;
         }
-        svgCode = `<polygon points="${points.join(' ')}" fill="${sColor}" />`;
-      } else if (sType === 'star') {
-        const points = layer.points || 5;
-        let coords = [];
-        for (let i = 0; i < points * 2; i++) {
-          const r = i % 2 === 0 ? 46 : 20;
-          const angle = (i * Math.PI / points) - Math.PI / 2;
-          const x = 50 + r * Math.cos(angle);
-          const y = 50 + r * Math.sin(angle);
-          coords.push(`${x},${y}`);
-        }
-        svgCode = `<polygon points="${coords.join(' ')}" fill="${sColor}" />`;
-      } else if (sType === 'diamond') {
-        svgCode = `<polygon points="50,4 96,50 50,96 4,50" fill="${sColor}" />`;
-      } else if (sType === 'heart') {
-        svgCode = `<path d="M 50,30 A 20,20,0,0,1,90,30 A 20,20,0,0,1,50,70 A 20,20,0,0,1,10,30 A 20,20,0,0,1,50,30 Z" transform="translate(0, 10)" fill="${sColor}" />`;
-      } else if (sType === 'cross') {
-        svgCode = `<polygon points="40,4 60,4 60,40 96,40 96,60 60,60 60,96 40,96 40,60 4,60 4,40 40,40" fill="${sColor}" />`;
-      } else if (sType === 'diagonal_split') {
-        svgCode = `<polygon points="0,0 100,0 0,100" fill="${sColor}" /><polygon points="100,0 100,100 0,100" fill="${layer.color2 || sColor}" opacity="0.8" />`;
-      } else if (sType === 'blob') {
-        // Render stylized rounded blob SVG
-        svgCode = `<path d="M25,-32.8C33.3,-29.4,41.6,-22.9,46,-14.2C50.5,-5.5,51,5.5,47,15.1C43,24.7,34.4,32.8,25,37.3C15.6,41.8,5.3,42.7,-4.8,40.4C-14.8,38.1,-24.6,32.7,-32.1,25C-39.7,17.4,-44.9,7.6,-46.1,-3.1C-47.3,-13.7,-44.4,-25.1,-37.2,-31C-30,-37,-18.6,-37.4,-8.6,-38.7C1.5,-40.1,16.8,-36.2,25,-32.8Z" transform="translate(50 50) scale(0.9)" fill="${sColor}" />`;
-      }
 
-      innerContent = `
-        <svg viewBox="0 0 100 100" width="100%" height="100%" style="display:block;">
-          ${svgCode}
-        </svg>
-      `;
+        innerContent = `
+          <svg viewBox="0 0 100 100" width="100%" height="100%" style="display:block;">
+            ${defsCode}
+            ${svgCode}
+          </svg>
+        `;
       }
       break;
 
@@ -446,20 +495,23 @@ export function setupDragHandlers() {
   const previewLayers = document.querySelectorAll(".preview-layer");
   
   previewLayers.forEach(el => {
-    // Left-click on canvas overlays selects them
     el.addEventListener("mousedown", (e) => {
+      e.preventDefault(); // Prevents browser image ghost dragging & text selection
+      e.stopPropagation(); // Prevents deselecting canvas
+      
       const idx = parseInt(el.getAttribute("data-index"));
       if (idx === undefined || isNaN(idx)) return;
       
-      e.stopPropagation(); // prevent empty canvas click deselect
       selectLayer(idx);
 
       // Setup dragging state
       state.isDragging = true;
       state.dragStartX = e.clientX;
       state.dragStartY = e.clientY;
-      state.dragInitialX = parseFloat(state.currentTemplate.layout[idx].x) || 0;
-      state.dragInitialY = parseFloat(state.currentTemplate.layout[idx].y) || 0;
+
+      const layerData = state.currentTemplate.layout[idx];
+      state.dragInitialX = layerData.x !== undefined ? parseFloat(layerData.x) : (layerData.cx !== undefined ? parseFloat(layerData.cx) - (parseFloat(layerData.width || 0.8) / 2) : 0);
+      state.dragInitialY = layerData.y !== undefined ? parseFloat(layerData.y) : (layerData.cy !== undefined ? parseFloat(layerData.cy) - (parseFloat(layerData.height || 0.4) / 2) : 0);
       
       el.style.cursor = "grabbing";
     });
@@ -473,37 +525,46 @@ export function setupDragHandlers() {
 // Global mouse listeners for dragging
 document.addEventListener("mousemove", (e) => {
   if (!state.isDragging || state.selectedLayerIndex < 0) return;
+  e.preventDefault();
 
   const dx = e.clientX - state.dragStartX;
   const dy = e.clientY - state.dragStartY;
 
-  // Convert pixel offsets relative to scaled viewport sizes
-  // virtual canvas is exactly 390x844
+  // Virtual canvas is exactly 390x844
   const canvasW = 390;
-  const canvasH = 847;
+  const canvasH = 844;
+  const zoomScale = state.canvasScale || 1.0;
   
   const targetLayer = state.currentTemplate.layout[state.selectedLayerIndex];
-  const newX = state.dragInitialX + (dx / state.canvasScale) / canvasW;
-  const newY = state.dragInitialY + (dy / state.canvasScale) / canvasH;
+  const newX = parseFloat((state.dragInitialX + (dx / zoomScale) / canvasW).toFixed(3));
+  const newY = parseFloat((state.dragInitialY + (dy / zoomScale) / canvasH).toFixed(3));
 
-  // Bound coordinates to reasonable canvas bounds
-  targetLayer.x = parseFloat(Math.max(-0.5, Math.min(1.5, newX)).toFixed(3));
-  targetLayer.y = parseFloat(Math.max(-0.5, Math.min(1.5, newY)).toFixed(3));
+  targetLayer.x = Math.max(-0.5, Math.min(1.5, newX));
+  targetLayer.y = Math.max(-0.5, Math.min(1.5, newY));
 
-  // Live update properties input displays & render canvas
-  document.getElementById("slider-val-x").value = targetLayer.x;
-  document.getElementById("label-val-x").textContent = targetLayer.x;
-  document.getElementById("slider-val-y").value = targetLayer.y;
-  document.getElementById("label-val-y").textContent = targetLayer.y;
+  // Directly update active layer element style for instant 60fps responsiveness
+  const activeEl = document.querySelector(`.preview-layer[data-index="${state.selectedLayerIndex}"]`);
+  if (activeEl) {
+    activeEl.style.left = `${targetLayer.x * 390}px`;
+    activeEl.style.top = `${targetLayer.y * 844}px`;
+  }
 
-  renderPreview();
+  // Update inputs if available
+  const inputX = document.getElementById("slider-val-x");
+  const labelX = document.getElementById("label-val-x");
+  const inputY = document.getElementById("slider-val-y");
+  const labelY = document.getElementById("label-val-y");
+  if (inputX) inputX.value = targetLayer.x;
+  if (labelX) labelX.textContent = targetLayer.x;
+  if (inputY) inputY.value = targetLayer.y;
+  if (labelY) labelY.textContent = targetLayer.y;
 });
 
 document.addEventListener("mouseup", () => {
   if (state.isDragging) {
     state.isDragging = false;
-    // Save draft auto-locally on drop
     saveTemplateDraft();
+    renderPreview();
   }
 });
 
