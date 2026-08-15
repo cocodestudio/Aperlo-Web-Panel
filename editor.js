@@ -1,4 +1,4 @@
-import { state } from './state.js';
+﻿import { state } from './state.js';
 import { db, storage, auth, ensureFontLoaded, showToast, showLoading, hideLoading, encryptTemplateData, ALIGNMENT_MAP, showLoginModal, hideLoginModal, populateFontDropdowns } from './shared.js';
 import { loadTemplates } from './dashboard.js';
 
@@ -28,6 +28,13 @@ export function initEditorPage() {
   document.getElementById("input-meta-tags").value = (state.currentTemplate.tags || []).join(", ");
   document.getElementById("select-meta-headline-font").value = state.currentTemplate.headlineFont || "Outfit";
   document.getElementById("select-meta-subheadline-font").value = state.currentTemplate.subheadlineFont || "Outfit";
+
+  // Total uses readout
+  const usesCount = state.currentTemplate.totalUses || 0;
+  const badgeUses = document.getElementById("label-template-uses");
+  if (badgeUses) badgeUses.textContent = `${usesCount.toLocaleString()} uses`;
+  const textMetaUses = document.getElementById("text-meta-uses");
+  if (textMetaUses) textMetaUses.textContent = `${usesCount.toLocaleString()} app creators have used this template`;
 
   // Pre-load default fonts
   ensureFontLoaded(state.currentTemplate.headlineFont);
@@ -60,6 +67,7 @@ export function createNewTemplate() {
     headlineFont: "Outfit",
     subheadlineFont: "Outfit",
     createdAt: Date.now(),
+    totalUses: 0,
     layout: [
       {
         type: "background",
@@ -371,7 +379,7 @@ export function getLayerHtml(layer, index, isSelected) {
 
     case 'feature_row':
       const featText = layer.content || "Awesome feature bullet";
-      const featIcon = layer.icon || "✔";
+      const featIcon = layer.icon || "âœ”";
       const featIconBg = layer.icon_bg || "#E8F5E9";
       const featIconCol = layer.icon_color || "#1A6B4A";
       const featTextCol = layer.text_color || "#141A14";
@@ -660,11 +668,11 @@ export function selectLayer(index) {
     }
 
     document.getElementById("slider-val-rotation").value = targetLayer.rotation || 0;
-    document.getElementById("label-val-rotation").textContent = `${targetLayer.rotation || 0}°`;
+    document.getElementById("label-val-rotation").textContent = `${targetLayer.rotation || 0}Â°`;
     document.getElementById("slider-val-rotation-x").value = targetLayer.rotation_x || 0;
-    document.getElementById("label-val-rotation-x").textContent = `${targetLayer.rotation_x || 0}°`;
+    document.getElementById("label-val-rotation-x").textContent = `${targetLayer.rotation_x || 0}Â°`;
     document.getElementById("slider-val-rotation-y").value = targetLayer.rotation_y || 0;
-    document.getElementById("label-val-rotation-y").textContent = `${targetLayer.rotation_y || 0}°`;
+    document.getElementById("label-val-rotation-y").textContent = `${targetLayer.rotation_y || 0}Â°`;
     document.getElementById("slider-val-opacity").value = targetLayer.opacity !== undefined ? targetLayer.opacity : 1;
     document.getElementById("label-val-opacity").textContent = `${Math.round((targetLayer.opacity !== undefined ? targetLayer.opacity : 1) * 100)}%`;
 
@@ -727,7 +735,7 @@ export function selectLayer(index) {
       document.getElementById("section-prop-feature-row").classList.remove("hidden");
       
       document.getElementById("input-feature-content").value = targetLayer.content || "";
-      document.getElementById("input-feature-icon").value = targetLayer.icon || "✔";
+      document.getElementById("input-feature-icon").value = targetLayer.icon || "âœ”";
       document.getElementById("picker-feature-icon-bg").value = targetLayer.icon_bg || "#E8F5E9";
       document.getElementById("text-feature-icon-bg").value = targetLayer.icon_bg || "#E8F5E9";
       document.getElementById("picker-feature-icon-color").value = targetLayer.icon_color || "#1A6B4A";
@@ -861,7 +869,7 @@ export function addLayer(type) {
   } 
   else if (type === 'badge') {
     newLayer.content = "FEATURE TAG";
-    newLayer.icon = "✦";
+    newLayer.icon = "âœ¦";
     newLayer.x = 0.3;
     newLayer.y = 0.08;
     newLayer.width = 0.4;
@@ -872,7 +880,7 @@ export function addLayer(type) {
   }
   else if (type === 'feature_row') {
     newLayer.content = "Premium bullet feature text";
-    newLayer.icon = "✔";
+    newLayer.icon = "âœ”";
     newLayer.x = 0.1;
     newLayer.y = 0.55;
     newLayer.width = 0.8;
@@ -1337,19 +1345,19 @@ Output strictly in JSON format matching this structure:
   if (document.getElementById("slider-val-rotation")) {
     document.getElementById("slider-val-rotation").addEventListener("input", (e) => {
       const val = parseInt(e.target.value);
-      document.getElementById("label-val-rotation").textContent = `${val}°`;
+      document.getElementById("label-val-rotation").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation", val);
     });
 
     document.getElementById("slider-val-rotation-x").addEventListener("input", (e) => {
       const val = parseInt(e.target.value);
-      document.getElementById("label-val-rotation-x").textContent = `${val}°`;
+      document.getElementById("label-val-rotation-x").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation_x", val);
     });
 
     document.getElementById("slider-val-rotation-y").addEventListener("input", (e) => {
       const val = parseInt(e.target.value);
-      document.getElementById("label-val-rotation-y").textContent = `${val}°`;
+      document.getElementById("label-val-rotation-y").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation_y", val);
     });
 
@@ -1689,3 +1697,4 @@ document.addEventListener("DOMContentLoaded", () => {
     initEditor();
   }
 });
+

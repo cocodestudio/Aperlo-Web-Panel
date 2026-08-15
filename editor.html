@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -44,9 +44,9 @@
 
   <main class="app-content">
     
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <!-- EDITOR VIEW -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <section id="view-editor" class="view-section">
       
       <!-- Editor Top Toolbar -->
@@ -56,6 +56,7 @@
           <div class="template-title-edit">
             <input type="text" id="input-template-name" value="My New Template" placeholder="Enter template name...">
             <span class="category-badge" id="badge-template-category">Minimal</span>
+            <span class="uses-badge" id="badge-template-uses" title="Total Uses in Mobile App"><i data-lucide="flame" style="width: 12px; height: 12px; color: #E5583A;"></i> <span id="label-template-uses">0 uses</span></span>
           </div>
         </div>
         <div class="toolbar-right">
@@ -107,6 +108,13 @@
           <div class="sidebar-section">
             <h3 class="section-title">Template Metadata</h3>
             <div class="meta-form">
+              <div class="form-group">
+                <label>Template Usage</label>
+                <div class="stat-readout" id="readout-template-uses">
+                  <i data-lucide="flame" style="width: 14px; height: 14px; color: #E5583A;"></i>
+                  <span id="text-meta-uses">0 app creators have used this</span>
+                </div>
+              </div>
               <div class="form-group">
                 <label for="select-meta-category">Category</label>
                 <select id="select-meta-category">
@@ -220,21 +228,21 @@
               <div class="slider-group" id="group-prop-rotation">
                 <div class="slider-header">
                   <label>Z-Axis Rotation (degrees)</label>
-                  <span id="label-val-rotation">0°</span>
+                  <span id="label-val-rotation">0Â°</span>
                 </div>
                 <input type="range" id="slider-val-rotation" min="-180" max="180" step="1" value="0">
               </div>
               <div class="slider-group" id="group-prop-rotation-x">
                 <div class="slider-header">
                   <label>X-Axis 3D Tilt (degrees)</label>
-                  <span id="label-val-rotation-x">0°</span>
+                  <span id="label-val-rotation-x">0Â°</span>
                 </div>
                 <input type="range" id="slider-val-rotation-x" min="-60" max="60" step="1" value="0">
               </div>
               <div class="slider-group" id="group-prop-rotation-y">
                 <div class="slider-header">
                   <label>Y-Axis 3D Turn (degrees)</label>
-                  <span id="label-val-rotation-y">0°</span>
+                  <span id="label-val-rotation-y">0Â°</span>
                 </div>
                 <input type="range" id="slider-val-rotation-y" min="-60" max="60" step="1" value="0">
               </div>
@@ -526,7 +534,7 @@
               </div>
               <div class="form-group">
                 <label for="input-badge-icon">Emoji / Icon Character</label>
-                <input type="text" id="input-badge-icon" placeholder="★">
+                <input type="text" id="input-badge-icon" placeholder="â˜…">
               </div>
               <div class="form-group">
                 <label>Background Color</label>
@@ -553,7 +561,7 @@
               </div>
               <div class="form-group">
                 <label for="input-feature-icon">Bullet Icon character</label>
-                <input type="text" id="input-feature-icon" placeholder="✔">
+                <input type="text" id="input-feature-icon" placeholder="âœ”">
               </div>
               <div class="form-group">
                 <label>Bullet Background</label>
@@ -628,3 +636,4 @@
   <script type="module" src="/editor.js"></script>
 </body>
 </html>
+
