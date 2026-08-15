@@ -550,13 +550,67 @@
                 <input type="range" id="slider-val-phone-radius" min="10" max="60" step="1" value="38">
               </div>
               <div class="form-group">
-                <label for="select-phone-shadow-style">Shadow & Elevation</label>
+                <label for="select-phone-shadow-style">Frame Elevation</label>
                 <select id="select-phone-shadow-style">
-                  <option value="floating_3d">☁️ 3D Floating (Air Suspension)</option>
                   <option value="standard">📐 Standard Elevation</option>
                   <option value="subtle">🌫️ Subtle Soft</option>
-                  <option value="none">❌ No Shadow</option>
+                  <option value="none">❌ No Edge Shadow</option>
                 </select>
+              </div>
+              
+              <div class="form-group inline-checkbox" style="margin-top: 12px; margin-bottom: 8px;">
+                <input type="checkbox" id="checkbox-phone-floor-shadow" checked>
+                <label for="checkbox-phone-floor-shadow">☁️ 3D Oval Floor Cast Shadow</label>
+              </div>
+
+              <div id="group-phone-floor-shadow" style="background: rgba(255,255,255,0.03); border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Floor Distance (Elevation)</label>
+                    <span id="label-val-phone-shadow-dist">35px</span>
+                  </div>
+                  <input type="range" id="slider-val-phone-shadow-dist" min="0" max="150" step="1" value="35">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Shadow Blur Softness</label>
+                    <span id="label-val-phone-shadow-blur">22px</span>
+                  </div>
+                  <input type="range" id="slider-val-phone-shadow-blur" min="2" max="60" step="1" value="22">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Shadow Width (Scale X)</label>
+                    <span id="label-val-phone-shadow-width">85%</span>
+                  </div>
+                  <input type="range" id="slider-val-phone-shadow-width" min="30" max="150" step="1" value="85">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Shadow Flatness (Perspective Y)</label>
+                    <span id="label-val-phone-shadow-height">14%</span>
+                  </div>
+                  <input type="range" id="slider-val-phone-shadow-height" min="4" max="40" step="1" value="14">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-header">
+                    <label>Shadow Opacity</label>
+                    <span id="label-val-phone-shadow-opacity">35%</span>
+                  </div>
+                  <input type="range" id="slider-val-phone-shadow-opacity" min="5" max="100" step="1" value="35">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Shadow Color</label>
+                  <div class="color-picker-wrapper">
+                    <input type="color" id="picker-phone-shadow-color" value="#000000">
+                    <input type="text" id="text-phone-shadow-color" value="#000000">
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -246,7 +246,7 @@ export function getLayerHtml(layer, index, isSelected) {
       const depth = layer.depth !== undefined ? Math.round(layer.depth) : 0;
       const depthColor = layer.depth_color || '#0F0F10';
 
-      const shadowStyleChoice = layer.shadow_style || (layer.shadow_3d ? 'floating_3d' : (layer.shadow !== false ? 'floating_3d' : 'none'));
+      const shadowStyleChoice = layer.shadow_style || (layer.shadow !== false ? 'standard' : 'none');
       let shadowStyle = 'box-shadow: none;';
       const depthShadows = [];
       if (depth > 0) {
@@ -255,29 +255,52 @@ export function getLayerHtml(layer, index, isSelected) {
         }
       }
 
-      if (shadowStyleChoice === 'floating_3d') {
-        const sf = scaleFactor;
-        const d = depth > 0 ? depth : 0;
-        const floatingLayers = [
-          `0 ${Math.round(34 * sf + d)}px ${Math.round(68 * sf)}px -${Math.round(8 * sf)}px rgba(0, 0, 0, 0.42)`,
-          `0 ${Math.round(18 * sf + d)}px ${Math.round(36 * sf)}px -${Math.round(4 * sf)}px rgba(0, 0, 0, 0.28)`,
-          `0 ${Math.round(6 * sf + d)}px ${Math.round(12 * sf)}px 0px rgba(0, 0, 0, 0.16)`
-        ];
-        shadowStyle = `box-shadow: ${[...depthShadows, ...floatingLayers].join(', ')};`;
-      } else if (shadowStyleChoice === 'standard') {
+      if (shadowStyleChoice === 'standard' || shadowStyleChoice === 'floating_3d') {
         const sf = scaleFactor;
         const d = depth > 0 ? depth : 0;
         const stdLayers = [
-          `0 ${Math.round(16 * sf + d)}px ${Math.round(32 * sf)}px rgba(0, 0, 0, 0.25)`,
-          `0 ${Math.round(4 * sf + d)}px ${Math.round(8 * sf)}px rgba(0, 0, 0, 0.12)`
+          `0 ${Math.round(16 * sf + d)}px ${Math.round(32 * sf)}px rgba(0, 0, 0, 0.22)`,
+          `0 ${Math.round(4 * sf + d)}px ${Math.round(8 * sf)}px rgba(0, 0, 0, 0.10)`
         ];
         shadowStyle = `box-shadow: ${[...depthShadows, ...stdLayers].join(', ')};`;
       } else if (shadowStyleChoice === 'subtle') {
         const sf = scaleFactor;
         const d = depth > 0 ? depth : 0;
-        shadowStyle = `box-shadow: ${[...depthShadows, `0 ${Math.round(8 * sf + d)}px ${Math.round(16 * sf)}px rgba(0, 0, 0, 0.15)`].join(', ')};`;
+        shadowStyle = `box-shadow: ${[...depthShadows, `0 ${Math.round(8 * sf + d)}px ${Math.round(16 * sf)}px rgba(0, 0, 0, 0.14)`].join(', ')};`;
       } else if (depthShadows.length > 0) {
         shadowStyle = `box-shadow: ${depthShadows.join(', ')};`;
+      }
+
+      // 3D Oval Floor Cast Shadow
+      const hasFloorShadow = layer.floor_shadow !== false && layer.shadow !== false;
+      const sDist = (layer.shadow_distance !== undefined ? Number(layer.shadow_distance) : 35) * scaleFactor;
+      const sBlur = (layer.shadow_blur !== undefined ? Number(layer.shadow_blur) : 22) * scaleFactor;
+      const sWidthRatio = layer.shadow_width_ratio !== undefined ? Number(layer.shadow_width_ratio) : 0.85;
+      const sHeightRatio = layer.shadow_height_ratio !== undefined ? Number(layer.shadow_height_ratio) : 0.14;
+      const sOpacity = layer.shadow_opacity !== undefined ? Number(layer.shadow_opacity) : 0.35;
+      const floorShadowColor = layer.shadow_color || '#000000';
+
+      const sWidth = Math.round(frameWidth * sWidthRatio);
+      const sHeight = Math.round(frameWidth * sHeightRatio);
+
+      let floorShadowHtml = "";
+      if (hasFloorShadow) {
+        floorShadowHtml = `
+          <div class="floor-oval-shadow" style="
+            position: absolute;
+            left: 50%;
+            bottom: -${Math.round(sDist + sHeight / 2)}px;
+            transform: translateX(-50%);
+            width: ${sWidth}px;
+            height: ${sHeight}px;
+            background: radial-gradient(ellipse at center, ${floorShadowColor} 0%, rgba(0,0,0,0) 75%);
+            filter: blur(${Math.round(sBlur)}px);
+            opacity: ${sOpacity};
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+          "></div>
+        `;
       }
 
       elementStyles += `
@@ -285,8 +308,9 @@ export function getLayerHtml(layer, index, isSelected) {
       `;
 
       innerContent = `
-        <div class="mockup-container">
-          <div class="phone-bezel-frame" style="width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${scaledRadius}px; padding: ${scaledBezel}px; background-color: ${frameColor}; ${shadowStyle}">
+        <div class="mockup-container" style="position: relative; overflow: visible;">
+          ${floorShadowHtml}
+          <div class="phone-bezel-frame" style="position: relative; z-index: 1; width: ${frameWidth}px; height: ${frameHeight}px; border-radius: ${scaledRadius}px; padding: ${scaledBezel}px; background-color: ${frameColor}; ${shadowStyle}">
             <!-- Simulated Notch cutout overlay -->
             ${notchHtml}
             
@@ -758,8 +782,34 @@ export function selectLayer(index) {
       document.getElementById("section-prop-shape").classList.remove("hidden");
       
       document.getElementById("select-shape-type").value = targetLayer.shape_type || "circle";
+      
+      const isGrad = targetLayer.fill_type === 'gradient' || (targetLayer.gradient_colors && targetLayer.gradient_colors.length >= 2);
+      const fillTypeSelect = document.getElementById("select-shape-fill-type");
+      if (fillTypeSelect) fillTypeSelect.value = isGrad ? "gradient" : "solid";
+
+      const solidGroup = document.getElementById("group-shape-solid");
+      const gradGroup = document.getElementById("group-shape-gradient");
+      if (solidGroup && gradGroup) {
+        solidGroup.classList.toggle("hidden", isGrad);
+        gradGroup.classList.toggle("hidden", !isGrad);
+      }
+
       document.getElementById("picker-shape-color").value = targetLayer.color || "#1A6B4A";
       document.getElementById("text-shape-color").value = targetLayer.color || "#1A6B4A";
+
+      const gradColors = targetLayer.gradient_colors && targetLayer.gradient_colors.length >= 2 
+        ? targetLayer.gradient_colors 
+        : [targetLayer.color || "#1A6B4A", targetLayer.color_2 || "#2E9F6E"];
+
+      if (document.getElementById("picker-shape-grad-1")) {
+        document.getElementById("picker-shape-grad-1").value = gradColors[0];
+        document.getElementById("text-shape-grad-1").value = gradColors[0];
+        document.getElementById("picker-shape-grad-2").value = gradColors[1];
+        document.getElementById("text-shape-grad-2").value = gradColors[1];
+        const angleVal = targetLayer.gradient_angle !== undefined ? targetLayer.gradient_angle : 135;
+        document.getElementById("slider-val-shape-grad-angle").value = angleVal;
+        document.getElementById("label-val-shape-grad-angle").textContent = `${angleVal}°`;
+      }
       
       // Conditionally show/hide shape properties
       const sType = targetLayer.shape_type || "circle";
@@ -780,7 +830,49 @@ export function selectLayer(index) {
       document.getElementById("label-val-phone-bezel").textContent = `${targetLayer.bezel || 8}px`;
       document.getElementById("slider-val-phone-radius").value = targetLayer.radius || 38;
       document.getElementById("label-val-phone-radius").textContent = `${targetLayer.radius || 38}px`;
-      document.getElementById("checkbox-phone-shadow").checked = targetLayer.shadow !== false;
+      
+      const shadowStyleSelect = document.getElementById("select-phone-shadow-style");
+      if (shadowStyleSelect) {
+        shadowStyleSelect.value = targetLayer.shadow_style || (targetLayer.shadow !== false ? "standard" : "none");
+      }
+
+      // 3D Floor Shadow inspector fields
+      const hasFloorShadow = targetLayer.floor_shadow !== false && targetLayer.shadow !== false;
+      const floorCheckbox = document.getElementById("checkbox-phone-floor-shadow");
+      if (floorCheckbox) floorCheckbox.checked = hasFloorShadow;
+      const floorGroup = document.getElementById("group-phone-floor-shadow");
+      if (floorGroup) floorGroup.classList.toggle("hidden", !hasFloorShadow);
+
+      const sDist = targetLayer.shadow_distance !== undefined ? targetLayer.shadow_distance : 35;
+      const sBlur = targetLayer.shadow_blur !== undefined ? targetLayer.shadow_blur : 22;
+      const sWidthPct = Math.round((targetLayer.shadow_width_ratio !== undefined ? targetLayer.shadow_width_ratio : 0.85) * 100);
+      const sHeightPct = Math.round((targetLayer.shadow_height_ratio !== undefined ? targetLayer.shadow_height_ratio : 0.14) * 100);
+      const sOpacityPct = Math.round((targetLayer.shadow_opacity !== undefined ? targetLayer.shadow_opacity : 0.35) * 100);
+      const sColor = targetLayer.shadow_color || "#000000";
+
+      const distInput = document.getElementById("slider-val-phone-shadow-dist");
+      const distLabel = document.getElementById("label-val-phone-shadow-dist");
+      if (distInput) { distInput.value = sDist; distLabel.textContent = `${sDist}px`; }
+
+      const blurInput = document.getElementById("slider-val-phone-shadow-blur");
+      const blurLabel = document.getElementById("label-val-phone-shadow-blur");
+      if (blurInput) { blurInput.value = sBlur; blurLabel.textContent = `${sBlur}px`; }
+
+      const widthInput = document.getElementById("slider-val-phone-shadow-width");
+      const widthLabel = document.getElementById("label-val-phone-shadow-width");
+      if (widthInput) { widthInput.value = sWidthPct; widthLabel.textContent = `${sWidthPct}%`; }
+
+      const heightInput = document.getElementById("slider-val-phone-shadow-height");
+      const heightLabel = document.getElementById("label-val-phone-shadow-height");
+      if (heightInput) { heightInput.value = sHeightPct; heightLabel.textContent = `${sHeightPct}%`; }
+
+      const opacityInput = document.getElementById("slider-val-phone-shadow-opacity");
+      const opacityLabel = document.getElementById("label-val-phone-shadow-opacity");
+      if (opacityInput) { opacityInput.value = sOpacityPct; opacityLabel.textContent = `${sOpacityPct}%`; }
+
+      const colorPicker = document.getElementById("picker-phone-shadow-color");
+      const colorText = document.getElementById("text-phone-shadow-color");
+      if (colorPicker) { colorPicker.value = sColor; colorText.value = sColor; }
     }
     else if (targetLayer.type === 'badge') {
       document.getElementById("section-prop-badge").classList.remove("hidden");
@@ -1589,11 +1681,36 @@ Output strictly in JSON format matching this structure:
     document.getElementById("select-phone-style").addEventListener("change", (e) => {
       updateSelectedLayerField("style", e.target.value);
     });
+  }
 
-    document.getElementById("checkbox-phone-shadow").addEventListener("change", (e) => {
-      updateSelectedLayerField("shadow", e.target.checked);
+  if (document.getElementById("select-phone-shadow-style")) {
+    document.getElementById("select-phone-shadow-style").addEventListener("change", (e) => {
+      const val = e.target.value;
+      updateSelectedLayerField("shadow_style", val);
+      updateSelectedLayerField("shadow", val !== "none");
     });
   }
+
+  // 3D Oval Floor Shadow handlers
+  const floorShadowCheckbox = document.getElementById("checkbox-phone-floor-shadow");
+  if (floorShadowCheckbox) {
+    floorShadowCheckbox.addEventListener("change", (e) => {
+      const isChecked = e.target.checked;
+      updateSelectedLayerField("floor_shadow", isChecked);
+      const floorGroup = document.getElementById("group-phone-floor-shadow");
+      if (floorGroup) floorGroup.classList.toggle("hidden", !isChecked);
+    });
+  }
+
+  bindSlider("slider-val-phone-shadow-dist", "label-val-phone-shadow-dist", "shadow_distance", false, (v) => `${Math.round(v)}px`);
+  bindSlider("slider-val-phone-shadow-blur", "label-val-phone-shadow-blur", "shadow_blur", false, (v) => `${Math.round(v)}px`);
+  bindSlider("slider-val-phone-shadow-width", "label-val-phone-shadow-width", "shadow_width_ratio", true, (v) => `${Math.round(v)}%`);
+  bindSlider("slider-val-phone-shadow-height", "label-val-phone-shadow-height", "shadow_height_ratio", true, (v) => `${Math.round(v)}%`);
+  bindSlider("slider-val-phone-shadow-opacity", "label-val-phone-shadow-opacity", "shadow_opacity", true, (v) => `${Math.round(v)}%`);
+
+  bindColorInput("picker-phone-shadow-color", "text-phone-shadow-color", (color) => {
+    updateSelectedLayerField("shadow_color", color);
+  });
 
   bindColorInput("picker-phone-frame", "text-phone-frame", (color) => {
     updateSelectedLayerField("frame_color", color);
