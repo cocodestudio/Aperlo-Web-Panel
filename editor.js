@@ -1418,17 +1418,17 @@ Output strictly in JSON format matching this structure:
     });
   }
 
-  document.getElementById("btn-create-template").addEventListener("click", createNewTemplate);
+  safeAddListener("btn-create-template", "click", createNewTemplate);
   
   if (document.getElementById("btn-save-draft")) {
-    document.getElementById("btn-save-draft").addEventListener("click", () => {
+    safeAddListener("btn-save-draft", "click", () => {
       saveTemplateDraft();
       showToast("Template draft saved locally");
     });
   }
 
   if (document.getElementById("btn-push-firestore")) {
-    document.getElementById("btn-push-firestore").addEventListener("click", pushTemplateToFirestore);
+    safeAddListener("btn-push-firestore", "click", pushTemplateToFirestore);
   }
 
   // Category filter chips binding
@@ -1443,14 +1443,14 @@ Output strictly in JSON format matching this structure:
 
   // Zoom Controls
   if (document.getElementById("btn-zoom-in")) {
-    document.getElementById("btn-zoom-in").addEventListener("click", () => {
+    safeAddListener("btn-zoom-in", "click", () => {
       state.canvasScale = Math.min(1.5, state.canvasScale + 0.1);
       updateCanvasZoom();
     });
   }
 
   if (document.getElementById("btn-zoom-out")) {
-    document.getElementById("btn-zoom-out").addEventListener("click", () => {
+    safeAddListener("btn-zoom-out", "click", () => {
       state.canvasScale = Math.max(0.4, state.canvasScale - 0.1);
       updateCanvasZoom();
     });
@@ -1458,22 +1458,22 @@ Output strictly in JSON format matching this structure:
 
   // Quick Alignment bindings
   if (document.getElementById("btn-align-left")) {
-    document.getElementById("btn-align-left").addEventListener("click", () => alignSelectedLayer('left'));
-    document.getElementById("btn-align-center-h").addEventListener("click", () => alignSelectedLayer('center-h'));
-    document.getElementById("btn-align-right").addEventListener("click", () => alignSelectedLayer('right'));
-    document.getElementById("btn-align-top").addEventListener("click", () => alignSelectedLayer('top'));
-    document.getElementById("btn-align-center-v").addEventListener("click", () => alignSelectedLayer('center-v'));
-    document.getElementById("btn-align-bottom").addEventListener("click", () => alignSelectedLayer('bottom'));
+    safeAddListener("btn-align-left", "click", () => alignSelectedLayer('left'));
+    safeAddListener("btn-align-center-h", "click", () => alignSelectedLayer('center-h'));
+    safeAddListener("btn-align-right", "click", () => alignSelectedLayer('right'));
+    safeAddListener("btn-align-top", "click", () => alignSelectedLayer('top'));
+    safeAddListener("btn-align-center-v", "click", () => alignSelectedLayer('center-v'));
+    safeAddListener("btn-align-bottom", "click", () => alignSelectedLayer('bottom'));
 
     // Duplicate active layer binding
-    document.getElementById("btn-duplicate-selected-layer").addEventListener("click", () => {
+    safeAddListener("btn-duplicate-selected-layer", "click", () => {
       if (state.selectedLayerIndex >= 0) {
         duplicateLayer(state.selectedLayerIndex);
       }
     });
 
     // Delete active layer binding
-    document.getElementById("btn-delete-selected-layer").addEventListener("click", () => {
+    safeAddListener("btn-delete-selected-layer", "click", () => {
       if (state.selectedLayerIndex >= 0) {
         deleteLayer(state.selectedLayerIndex);
       }
@@ -1496,25 +1496,25 @@ Output strictly in JSON format matching this structure:
   
   // Position sliders listeners (Editor only)
   if (document.getElementById("slider-val-rotation")) {
-    document.getElementById("slider-val-rotation").addEventListener("input", (e) => {
+    safeAddListener("slider-val-rotation", "input", (e) => {
       const val = parseInt(e.target.value);
       document.getElementById("label-val-rotation").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation", val);
     });
 
-    document.getElementById("slider-val-rotation-x").addEventListener("input", (e) => {
+    safeAddListener("slider-val-rotation-x", "input", (e) => {
       const val = parseInt(e.target.value);
       document.getElementById("label-val-rotation-x").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation_x", val);
     });
 
-    document.getElementById("slider-val-rotation-y").addEventListener("input", (e) => {
+    safeAddListener("slider-val-rotation-y", "input", (e) => {
       const val = parseInt(e.target.value);
       document.getElementById("label-val-rotation-y").textContent = `${val}Â°`;
       updateSelectedLayerField("rotation_y", val);
     });
 
-    document.getElementById("slider-val-opacity").addEventListener("input", (e) => {
+    safeAddListener("slider-val-opacity", "input", (e) => {
       const val = parseFloat(e.target.value);
       document.getElementById("label-val-opacity").textContent = `${Math.round(val * 100)}%`;
       updateSelectedLayerField("opacity", val);
@@ -1523,7 +1523,7 @@ Output strictly in JSON format matching this structure:
 
   // Background control handlers
   if (document.getElementById("select-bg-type")) {
-    document.getElementById("select-bg-type").addEventListener("change", (e) => {
+    safeAddListener("select-bg-type", "change", (e) => {
       const val = e.target.value;
       const bgLayer = state.currentTemplate.layout.find(l => l.type === 'background');
       
@@ -1574,13 +1574,13 @@ Output strictly in JSON format matching this structure:
   });
 
   if (document.getElementById("select-bg-grad-begin")) {
-    document.getElementById("select-bg-grad-begin").addEventListener("change", (e) => {
+    safeAddListener("select-bg-grad-begin", "change", (e) => {
       const bg = state.currentTemplate.layout.find(l => l.type === 'background');
       bg.begin = e.target.value;
       renderPreview();
     });
 
-    document.getElementById("select-bg-grad-end-dir").addEventListener("change", (e) => {
+    safeAddListener("select-bg-grad-end-dir", "change", (e) => {
       const bg = state.currentTemplate.layout.find(l => l.type === 'background');
       bg.end = e.target.value;
       renderPreview();
@@ -1603,11 +1603,11 @@ Output strictly in JSON format matching this structure:
 
   // Text Property Handlers
   if (document.getElementById("textarea-text-content")) {
-    document.getElementById("textarea-text-content").addEventListener("input", (e) => {
+    safeAddListener("textarea-text-content", "input", (e) => {
       updateSelectedLayerField("content", e.target.value);
     });
 
-    document.getElementById("select-text-font").addEventListener("change", (e) => {
+    safeAddListener("select-text-font", "change", (e) => {
       ensureFontLoaded(e.target.value);
       updateSelectedLayerField("font", e.target.value);
     });
@@ -1616,11 +1616,11 @@ Output strictly in JSON format matching this structure:
       updateSelectedLayerField("color", color);
     });
 
-    document.getElementById("select-text-align").addEventListener("change", (e) => {
+    safeAddListener("select-text-align", "change", (e) => {
       updateSelectedLayerField("align", e.target.value);
     });
 
-    document.getElementById("select-text-weight").addEventListener("change", (e) => {
+    safeAddListener("select-text-weight", "change", (e) => {
       const val = e.target.value;
       const l = state.currentTemplate.layout[state.selectedLayerIndex];
       if (val === 'w700') {
@@ -1641,7 +1641,7 @@ Output strictly in JSON format matching this structure:
 
   // Shape Property Handlers
   if (document.getElementById("select-shape-type")) {
-    document.getElementById("select-shape-type").addEventListener("change", (e) => {
+    safeAddListener("select-shape-type", "change", (e) => {
       const val = e.target.value;
       updateSelectedLayerField("shape_type", val);
       toggleShapeControlGroups(val, state.currentTemplate.layout[state.selectedLayerIndex]);
@@ -1678,13 +1678,13 @@ Output strictly in JSON format matching this structure:
 
   // Phone Mockup Property Handlers
   if (document.getElementById("select-phone-style")) {
-    document.getElementById("select-phone-style").addEventListener("change", (e) => {
+    safeAddListener("select-phone-style", "change", (e) => {
       updateSelectedLayerField("style", e.target.value);
     });
   }
 
   if (document.getElementById("select-phone-shadow-style")) {
-    document.getElementById("select-phone-shadow-style").addEventListener("change", (e) => {
+    safeAddListener("select-phone-shadow-style", "change", (e) => {
       const val = e.target.value;
       updateSelectedLayerField("shadow_style", val);
       updateSelectedLayerField("shadow", val !== "none");
@@ -1723,11 +1723,11 @@ Output strictly in JSON format matching this structure:
 
   // Badge Property Handlers
   if (document.getElementById("input-badge-content")) {
-    document.getElementById("input-badge-content").addEventListener("input", (e) => {
+    safeAddListener("input-badge-content", "input", (e) => {
       updateSelectedLayerField("content", e.target.value);
     });
 
-    document.getElementById("input-badge-icon").addEventListener("input", (e) => {
+    safeAddListener("input-badge-icon", "input", (e) => {
       updateSelectedLayerField("icon", e.target.value);
     });
   }
@@ -1742,11 +1742,11 @@ Output strictly in JSON format matching this structure:
 
   // Feature Row Property Handlers
   if (document.getElementById("input-feature-content")) {
-    document.getElementById("input-feature-content").addEventListener("input", (e) => {
+    safeAddListener("input-feature-content", "input", (e) => {
       updateSelectedLayerField("content", e.target.value);
     });
 
-    document.getElementById("input-feature-icon").addEventListener("input", (e) => {
+    safeAddListener("input-feature-icon", "input", (e) => {
       updateSelectedLayerField("icon", e.target.value);
     });
   }
@@ -1767,7 +1767,7 @@ Output strictly in JSON format matching this structure:
   });
 
   if (document.getElementById("slider-val-frosted-opacity")) {
-    document.getElementById("slider-val-frosted-opacity").addEventListener("input", (e) => {
+    safeAddListener("slider-val-frosted-opacity", "input", (e) => {
       const val = parseFloat(e.target.value);
       document.getElementById("label-val-frosted-opacity").textContent = `${Math.round(val * 100)}%`;
       updateSelectedLayerField("opacity", val);
@@ -1791,23 +1791,32 @@ function updateSelectedLayerField(field, value) {
   saveTemplateDraft();
 }
 
+// Helper: Safe Event Listener attachment
+function safeAddListener(idOrEl, event, handler) {
+  const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+  if (el) {
+    el.addEventListener(event, handler);
+  }
+}
+
 // Helper: Bind input slider element to label value output and update target template state fields
-function bindSlider(sliderId, labelId, fieldKey, isGlobalBg = false) {
+function bindSlider(sliderId, labelId, fieldKey, isPercentage = false, formatFn = null) {
   const slider = document.getElementById(sliderId);
   const label = document.getElementById(labelId);
   if (!slider || !label) return;
   
   slider.addEventListener("input", (e) => {
-    const val = parseFloat(e.target.value);
-    label.textContent = val;
-    
-    if (isGlobalBg) {
-      const bg = state.currentTemplate.layout.find(l => l.type === 'background');
-      bg[fieldKey] = val;
-      renderPreview();
+    const rawVal = parseFloat(e.target.value);
+    if (formatFn) {
+      label.textContent = formatFn(rawVal);
+    } else if (isPercentage) {
+      label.textContent = `${Math.round(rawVal)}%`;
     } else {
-      updateSelectedLayerField(fieldKey, val);
+      label.textContent = rawVal;
     }
+    
+    const finalVal = isPercentage ? (rawVal / 100.0) : rawVal;
+    updateSelectedLayerField(fieldKey, finalVal);
   });
 }
 
