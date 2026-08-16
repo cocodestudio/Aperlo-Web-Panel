@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+
+              <!-- Warp Effect (for non-solid backgrounds) -->
+              <div class="slider-group hidden" id="group-bg-warp" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border);">
+                <div class="slider-header">
+                  <label>🌊 Warp Effect</label>
+                  <span id="label-val-bg-warp">0%</span>
+                </div>
+                <input type="range" id="slider-val-bg-warp" min="0" max="100" step="1" value="0">
+              </div>
+            </div>
+
+            <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -671,7 +682,22 @@
             <!-- Phone specific properties -->
             <div class="properties-section hidden" id="section-prop-phone">
               <h5 class="prop-section-title">Phone Mockup</h5>
-              <div class="form-group">
+              
+              <!-- Mockup Screen Image Picker -->
+              <div class="form-group" id="group-phone-image" style="margin-top: 8px;">
+                <label>Mockup Screen Image</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" class="btn btn-secondary" id="btn-pick-phone-image" style="flex: 1; text-align: left; display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 9px 12px;">
+                    <i data-lucide="image" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                    <span id="label-phone-image-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Pick Image</span>
+                  </button>
+                  <input type="file" id="input-phone-image" accept="image/*" style="display: none;">
+                  <button type="button" class="btn btn-outline" id="btn-clear-phone-image" title="Remove image" style="display: none; padding: 7px 10px; flex-shrink: 0; align-items: center; justify-content: center;">
+                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
+              </div>
+<div class="form-group">
                 <label for="select-phone-style">Notch/Camera Cutout Style</label>
                 <select id="select-phone-style">
                   <option value="dynamic_island">Dynamic Island (iPhone 14 Pro+)</option>

@@ -128,6 +128,7 @@ export function getLayerHtml(layer, index, isSelected) {
     let innerSvg = "";
 
     const baseColor = layer.bg_color || layer.color || "#FAF9F6";
+    const warp = Number(layer.bg_warp) || 0;
 
     if (bgType === 'grid') {
       bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
@@ -137,15 +138,65 @@ export function getLayerHtml(layer, index, isSelected) {
       const spacing = layer.grid_spacing || 32;
       const angle = layer.grid_angle || 0;
 
-      innerSvg = `
-        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
-          <defs>
-            <pattern id="bg-grid-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse" patternTransform="rotate(${angle} 50 50)">
-              <path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>
-            </pattern>
-          </defs>
-          <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-grid-pattern-${index})"/>
-        </svg>`;
+      if (warp > 0) {
+        let gridPaths = "";
+        const diag = Math.sqrt(390 * 390 + 844 * 844);
+        if (angle !== 0) {
+          for (let x = -diag; x <= diag; x += spacing) {
+            let d = `M ${(x + Math.sin(-diag / 45 + x / 60) * (30 * warp)).toFixed(1)} ${-diag}`;
+            for (let y = -diag + 15; y <= diag; y += 15) {
+              const dx = Math.sin(y / 45 + x / 60) * (30 * warp);
+              d += ` L ${(x + dx).toFixed(1)} ${y}`;
+            }
+            gridPaths += `<path d="${d}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>`;
+          }
+          for (let y = -diag; y <= diag; y += spacing) {
+            let d = `M ${-diag} ${(y + Math.cos(-diag / 45 + y / 60) * (30 * warp)).toFixed(1)}`;
+            for (let x = -diag + 15; x <= diag; x += 15) {
+              const dy = Math.cos(x / 45 + y / 60) * (30 * warp);
+              d += ` L ${x} ${(y + dy).toFixed(1)}`;
+            }
+            gridPaths += `<path d="${d}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>`;
+          }
+          innerSvg = `
+            <svg viewBox="0 0 390 844" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+              <g transform="translate(195, 422) rotate(${angle})">
+                ${gridPaths}
+              </g>
+            </svg>`;
+        } else {
+          for (let x = 0; x <= 390 + spacing; x += spacing) {
+            let d = `M ${(x + Math.sin(x / 60) * (30 * warp)).toFixed(1)} 0`;
+            for (let y = 15; y <= 844 + 15; y += 15) {
+              const dx = Math.sin(y / 45 + x / 60) * (30 * warp);
+              d += ` L ${(x + dx).toFixed(1)} ${y}`;
+            }
+            gridPaths += `<path d="${d}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>`;
+          }
+          for (let y = 0; y <= 844 + spacing; y += spacing) {
+            let d = `M 0 ${(y + Math.cos(y / 60) * (30 * warp)).toFixed(1)}`;
+            for (let x = 15; x <= 390 + 15; x += 15) {
+              const dy = Math.cos(x / 45 + y / 60) * (30 * warp);
+              d += ` L ${x} ${(y + dy).toFixed(1)}`;
+            }
+            gridPaths += `<path d="${d}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>`;
+          }
+          innerSvg = `
+            <svg viewBox="0 0 390 844" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+              ${gridPaths}
+            </svg>`;
+        }
+      } else {
+        innerSvg = `
+          <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <defs>
+              <pattern id="bg-grid-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse" patternTransform="rotate(${angle} 50 50)">
+                <path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="${gridColor}" stroke-width="${lineWidth}" stroke-opacity="${opacity}"/>
+              </pattern>
+            </defs>
+            <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-grid-pattern-${index})"/>
+          </svg>`;
+      }
     } else if (bgType === 'dots') {
       bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
       const dotColor = layer.dot_color || layer.pattern_color || "#1A6B4A";
@@ -153,15 +204,30 @@ export function getLayerHtml(layer, index, isSelected) {
       const dotSize = layer.dot_size || 3;
       const spacing = layer.dot_spacing || 24;
 
-      innerSvg = `
-        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
-          <defs>
-            <pattern id="bg-dots-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse">
-              <circle cx="${spacing/2}" cy="${spacing/2}" r="${dotSize/2}" fill="${dotColor}" fill-opacity="${opacity}"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#bg-dots-pattern-${index})"/>
-        </svg>`;
+      if (warp > 0) {
+        let dotElements = "";
+        for (let x = spacing / 2; x < 390 + spacing; x += spacing) {
+          for (let y = spacing / 2; y < 844 + spacing; y += spacing) {
+            const dx = Math.sin(y / 40 + x / 50) * (25 * warp);
+            const dy = Math.cos(x / 40 + y / 50) * (25 * warp);
+            dotElements += `<circle cx="${(x + dx).toFixed(1)}" cy="${(y + dy).toFixed(1)}" r="${dotSize / 2}" fill="${dotColor}" fill-opacity="${opacity}"/>`;
+          }
+        }
+        innerSvg = `
+          <svg viewBox="0 0 390 844" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            ${dotElements}
+          </svg>`;
+      } else {
+        innerSvg = `
+          <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <defs>
+              <pattern id="bg-dots-pattern-${index}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse">
+                <circle cx="${spacing/2}" cy="${spacing/2}" r="${dotSize/2}" fill="${dotColor}" fill-opacity="${opacity}"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#bg-dots-pattern-${index})"/>
+          </svg>`;
+      }
     } else if (bgType === 'stripes') {
       bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
       const stripeColor = layer.stripe_color || layer.pattern_color || "#1A6B4A";
@@ -171,15 +237,34 @@ export function getLayerHtml(layer, index, isSelected) {
       const angle = layer.stripe_angle !== undefined ? layer.stripe_angle : 45;
       const step = spacing + stripeWidth;
 
-      innerSvg = `
-        <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
-          <defs>
-            <pattern id="bg-stripes-pattern-${index}" width="${step}" height="${step}" patternTransform="rotate(${angle} 50 50)" patternUnits="userSpaceOnUse">
-              <line x1="0" y1="0" x2="0" y2="${step}" stroke="${stripeColor}" stroke-width="${stripeWidth}" stroke-opacity="${opacity}"/>
-            </pattern>
-          </defs>
-          <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-stripes-pattern-${index})"/>
-        </svg>`;
+      if (warp > 0) {
+        let stripePaths = "";
+        const diag = Math.sqrt(390 * 390 + 844 * 844);
+        for (let x = -diag; x <= diag; x += step) {
+          let d = `M ${(x + Math.sin(-diag / 40) * (25 * warp)).toFixed(1)} ${-diag}`;
+          for (let y = -diag + 20; y <= diag; y += 20) {
+            const dx = Math.sin(y / 40) * (25 * warp);
+            d += ` L ${(x + dx).toFixed(1)} ${y}`;
+          }
+          stripePaths += `<path d="${d}" fill="none" stroke="${stripeColor}" stroke-width="${stripeWidth}" stroke-opacity="${opacity}"/>`;
+        }
+        innerSvg = `
+          <svg viewBox="0 0 390 844" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <g transform="translate(195, 422) rotate(${angle})">
+              ${stripePaths}
+            </g>
+          </svg>`;
+      } else {
+        innerSvg = `
+          <svg width="100%" height="100%" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <defs>
+              <pattern id="bg-stripes-pattern-${index}" width="${step}" height="${step}" patternTransform="rotate(${angle} 50 50)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="${step}" stroke="${stripeColor}" stroke-width="${stripeWidth}" stroke-opacity="${opacity}"/>
+              </pattern>
+            </defs>
+            <rect x="-100%" y="-100%" width="300%" height="300%" fill="url(#bg-stripes-pattern-${index})"/>
+          </svg>`;
+      }
     } else if (bgType === 'rays') {
       bgStyle = `background-color: ${baseColor}; position: relative; overflow: hidden;`;
       const rayColor = layer.ray_color || layer.pattern_color || "#1A6B4A";
@@ -188,15 +273,29 @@ export function getLayerHtml(layer, index, isSelected) {
       const stepDeg = 360 / count;
 
       let rayPaths = "";
+      const radius = 2000;
       for (let r = 0; r < count; r += 2) {
         const a1 = (r * stepDeg * Math.PI) / 180;
         const a2 = ((r + 1) * stepDeg * Math.PI) / 180;
-        const radius = 2000;
-        const x1 = 500 + radius * Math.cos(a1);
-        const y1 = 500 + radius * Math.sin(a1);
-        const x2 = 500 + radius * Math.cos(a2);
-        const y2 = 500 + radius * Math.sin(a2);
-        rayPaths += `<path d="M 500 500 L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${radius} ${radius} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${rayColor}" fill-opacity="${opacity}"/>`;
+        if (warp > 0) {
+          let d = "M 500 500";
+          for (let rad = 30; rad <= radius; rad += 30) {
+            const curA = a1 + (rad / radius) * (warp * 1.5);
+            d += ` L ${(500 + rad * Math.cos(curA)).toFixed(1)} ${(500 + rad * Math.sin(curA)).toFixed(1)}`;
+          }
+          for (let rad = radius; rad >= 0; rad -= 30) {
+            const curA = a2 + (rad / radius) * (warp * 1.5);
+            d += ` L ${(500 + rad * Math.cos(curA)).toFixed(1)} ${(500 + rad * Math.sin(curA)).toFixed(1)}`;
+          }
+          d += " Z";
+          rayPaths += `<path d="${d}" fill="${rayColor}" fill-opacity="${opacity}"/>`;
+        } else {
+          const x1 = 500 + radius * Math.cos(a1);
+          const y1 = 500 + radius * Math.sin(a1);
+          const x2 = 500 + radius * Math.cos(a2);
+          const y2 = 500 + radius * Math.sin(a2);
+          rayPaths += `<path d="M 500 500 L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${radius} ${radius} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${rayColor}" fill-opacity="${opacity}"/>`;
+        }
       }
 
       innerSvg = `
@@ -206,12 +305,53 @@ export function getLayerHtml(layer, index, isSelected) {
     } else if (bgType === 'linear' || (layer.gradient && layer.gradient.length >= 2)) {
       const grad = layer.gradient || ['#0082FF', '#0040A3'];
       const beginCSS = ALIGNMENT_MAP[layer.begin] || "to bottom";
-      bgStyle = `background: linear-gradient(${beginCSS}, ${grad.join(", ")});`;
+      if (warp > 0) {
+        const c1 = grad[0];
+        const c2 = grad[grad.length - 1];
+        let waveD1 = "M 0 844";
+        for (let x = 0; x <= 390 + 10; x += 10) {
+          const y = 844 * 0.5 + Math.sin((x / 390) * 2 * Math.PI) * (70 * warp);
+          waveD1 += ` L ${x} ${y.toFixed(1)}`;
+        }
+        waveD1 += ` L 390 844 Z`;
+
+        let waveD2 = "M 0 0";
+        for (let x = 0; x <= 390 + 10; x += 10) {
+          const y = 844 * 0.35 + Math.cos((x / 390) * 2.5 * Math.PI) * (60 * warp);
+          waveD2 += ` L ${x} ${y.toFixed(1)}`;
+        }
+        waveD2 += ` L 390 0 Z`;
+
+        bgStyle = `background: linear-gradient(${beginCSS}, ${grad.join(", ")}); position: relative; overflow: hidden;`;
+        innerSvg = `
+          <svg viewBox="0 0 390 844" preserveAspectRatio="none" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <path d="${waveD1}" fill="${c2}" fill-opacity="${(0.55 * warp).toFixed(2)}"/>
+            <path d="${waveD2}" fill="${c1}" fill-opacity="${(0.45 * warp).toFixed(2)}"/>
+          </svg>`;
+      } else {
+        bgStyle = `background: linear-gradient(${beginCSS}, ${grad.join(", ")});`;
+      }
     } else if (bgType === 'split' || layer.split_at !== undefined) {
-      const splitPercent = ((layer.split_at !== undefined ? layer.split_at : 0.5) * 100) + "%";
       const topColor = layer.top_color || "#FAF9F6";
       const bottomColor = layer.bottom_color || "#F5F7F5";
-      bgStyle = `background: linear-gradient(to bottom, ${topColor} ${splitPercent}, ${bottomColor} ${splitPercent});`;
+      const splitRatio = layer.split_at !== undefined ? layer.split_at : 0.5;
+      if (warp > 0) {
+        const splitY = 844 * splitRatio;
+        let waveD = `M 0 0 L 0 ${splitY.toFixed(1)}`;
+        for (let x = 0; x <= 390 + 10; x += 10) {
+          const wave = Math.sin((x / 390) * 2 * Math.PI) * (50 * warp) + Math.cos((x / 390) * 4 * Math.PI) * (20 * warp);
+          waveD += ` L ${x} ${(splitY + wave).toFixed(1)}`;
+        }
+        waveD += ` L 390 0 Z`;
+        bgStyle = `background-color: ${bottomColor}; position: relative; overflow: hidden;`;
+        innerSvg = `
+          <svg viewBox="0 0 390 844" preserveAspectRatio="none" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none;">
+            <path d="${waveD}" fill="${topColor}"/>
+          </svg>`;
+      } else {
+        const splitPercent = (splitRatio * 100) + "%";
+        bgStyle = `background: linear-gradient(to bottom, ${topColor} ${splitPercent}, ${bottomColor} ${splitPercent});`;
+      }
     } else {
       bgStyle = `background-color: ${baseColor};`;
     }
@@ -903,6 +1043,19 @@ export function selectLayer(index) {
       document.getElementById("label-val-phone-height").textContent = `${phoneAspectRatio.toFixed(2)}x`;
       document.getElementById("slider-val-phone-depth").value = targetLayer.depth || 0;
       document.getElementById("label-val-phone-depth").textContent = `${targetLayer.depth || 0}px`;
+      
+      // Mockup Screen Image display
+      const rawImgName = targetLayer.imageName || (targetLayer.image ? (targetLayer.image.startsWith('data:') ? 'Imported Image' : targetLayer.image.split('/').pop().split('\\').pop()) : null);
+      const imgNameLabel = document.getElementById("label-phone-image-name");
+      const clearImgBtn = document.getElementById("btn-clear-phone-image");
+      if (rawImgName) {
+        if (imgNameLabel) imgNameLabel.textContent = rawImgName;
+        if (clearImgBtn) clearImgBtn.style.display = "inline-flex";
+      } else {
+        if (imgNameLabel) imgNameLabel.textContent = "Pick Image";
+        if (clearImgBtn) clearImgBtn.style.display = "none";
+      }
+
       document.getElementById("select-phone-style").value = targetLayer.style || "dynamic_island";
       document.getElementById("picker-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
       document.getElementById("text-phone-frame").value = targetLayer.frame_color || "#1C1C1E";
@@ -1157,6 +1310,21 @@ export function setupBackgroundPropsForm(layer) {
     if (solidGroup) solidGroup.classList.remove("hidden");
     document.getElementById("picker-bg-solid").value = layer.color || "#FAF9F6";
     document.getElementById("text-bg-solid").value = layer.color || "#FAF9F6";
+  }
+
+  // Handle Warp Effect slider visibility (not for solid)
+  const warpGroup = document.getElementById("group-bg-warp");
+  if (warpGroup) {
+    if (bgType === 'solid') {
+      warpGroup.classList.add("hidden");
+    } else {
+      warpGroup.classList.remove("hidden");
+      const warpSlider = document.getElementById("slider-val-bg-warp");
+      const warpLabel = document.getElementById("label-val-bg-warp");
+      const warpVal = Math.round((Number(layer.bg_warp) || 0) * 100);
+      if (warpSlider) warpSlider.value = warpVal;
+      if (warpLabel) warpLabel.textContent = `${warpVal}%`;
+    }
   }
 }
 
@@ -1704,6 +1872,7 @@ Output strictly in JSON format matching this structure:
       delete bgLayer.split_at;
       delete bgLayer.top_color;
       delete bgLayer.bottom_color;
+      if (val === 'solid') delete bgLayer.bg_warp;
 
       bgLayer.bg_type = val;
 
@@ -2026,6 +2195,69 @@ Output strictly in JSON format matching this structure:
   bindSlider("slider-val-phone-depth", "label-val-phone-depth", "depth", false, (v) => `${Math.round(v)}px`);
   bindSlider("slider-val-phone-bezel", "label-val-phone-bezel", "bezel");
   bindSlider("slider-val-phone-radius", "label-val-phone-radius", "radius");
+
+  // Phone Mockup Image Picker listeners
+  const pickImgBtn = document.getElementById("btn-pick-phone-image");
+  const fileInput = document.getElementById("input-phone-image");
+  const clearImgBtn = document.getElementById("btn-clear-phone-image");
+
+  if (pickImgBtn && fileInput) {
+    pickImgBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const targetLayer = state.currentTemplate.layout[state.selectedLayerIndex];
+          if (targetLayer) {
+            targetLayer.image = ev.target.result;
+            targetLayer.imageName = file.name;
+            const lbl = document.getElementById("label-phone-image-name");
+            if (lbl) lbl.textContent = file.name;
+            if (clearImgBtn) clearImgBtn.style.display = "inline-flex";
+            renderPreview();
+            saveTemplateDraft();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  if (clearImgBtn) {
+    clearImgBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetLayer = state.currentTemplate.layout[state.selectedLayerIndex];
+      if (targetLayer) {
+        delete targetLayer.image;
+        delete targetLayer.imageName;
+        delete targetLayer.image_url;
+        delete targetLayer.screenshot;
+        delete targetLayer.screenshot_url;
+        const lbl = document.getElementById("label-phone-image-name");
+        if (lbl) lbl.textContent = "Pick Image";
+        clearImgBtn.style.display = "none";
+        renderPreview();
+        saveTemplateDraft();
+      }
+    });
+  }
+
+  // Background Warp slider listener
+  const warpSlider = document.getElementById("slider-val-bg-warp");
+  if (warpSlider) {
+    warpSlider.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      const bgLayer = state.currentTemplate.layout.find(l => l.type === 'background');
+      if (bgLayer) {
+        bgLayer.bg_warp = val / 100;
+        const lbl = document.getElementById("label-val-bg-warp");
+        if (lbl) lbl.textContent = `${val}%`;
+        renderPreview();
+        saveTemplateDraft();
+      }
+    });
+  }
 
   // Badge Property Handlers
   if (document.getElementById("input-badge-content")) {
