@@ -542,6 +542,148 @@ export function getLayerHtml(layer, index, isSelected) {
       `;
       break;
 
+    case 'pattern':
+    case 'pattern_overlay': {
+      const pType = layer.pattern_type || layer.bg_type || 'grid';
+      const pColor = layer.color || layer.pattern_color || '#1A6B4A';
+      const pOpacity = Number(layer.opacity !== undefined ? layer.opacity : (layer.pattern_opacity !== undefined ? layer.pattern_opacity : 0.25));
+      const pWarp = Number(layer.bg_warp !== undefined ? layer.bg_warp : (layer.warp || 0));
+      
+      const pWidth = (width !== 'auto') ? width : 390;
+      const pHeight = (height !== 'auto') ? height : 844;
+      elementStyles += `height: ${pHeight}px; pointer-events: auto;`;
+
+      let patternSvg = "";
+      if (pType === 'grid') {
+        const spacing = Number(layer.grid_spacing) || 32;
+        const lineWidth = Number(layer.grid_line_width) || 1.5;
+        const angle = Number(layer.grid_angle) || 0;
+        
+        if (angle !== 0) {
+          const diag = Math.sqrt(pWidth * pWidth + pHeight * pHeight);
+          let gridPaths = "";
+          if (pWarp > 0) {
+            for (let x = -diag; x <= diag; x += spacing) {
+              let d = `M ${(x + Math.sin(-diag / 45 + x / 60) * (30 * pWarp)).toFixed(1)} ${-diag}`;
+              for (let y = -diag + 15; y <= diag; y += 15) {
+                const dx = Math.sin(y / 45 + x / 60) * (30 * pWarp);
+                d += ` L ${(x + dx).toFixed(1)} ${y.toFixed(1)}`;
+              }
+              gridPaths += `<path d="${d}" stroke="${pColor}" stroke-width="${lineWidth}" fill="none" opacity="${pOpacity}" />`;
+            }
+            for (let y = -diag; y <= diag; y += spacing) {
+              let d = `M ${-diag} ${(y + Math.cos(-diag / 45 + y / 60) * (30 * pWarp)).toFixed(1)}`;
+              for (let x = -diag + 15; x <= diag; x += 15) {
+                const dy = Math.cos(x / 45 + y / 60) * (30 * pWarp);
+                d += ` L ${(x + dy).toFixed(1)} ${(y + dy).toFixed(1)}`;
+              }
+              gridPaths += `<path d="${d}" stroke="${pColor}" stroke-width="${lineWidth}" fill="none" opacity="${pOpacity}" />`;
+            }
+          } else {
+            for (let x = -diag; x <= diag; x += spacing) {
+              gridPaths += `<line x1="${x}" y1="${-diag}" x2="${x}" y2="${diag}" stroke="${pColor}" stroke-width="${lineWidth}" opacity="${pOpacity}" />`;
+            }
+            for (let y = -diag; y <= diag; y += spacing) {
+              gridPaths += `<line x1="${-diag}" y1="${y}" x2="${diag}" y2="${y}" stroke="${pColor}" stroke-width="${lineWidth}" opacity="${pOpacity}" />`;
+            }
+          }
+          patternSvg = `<svg width="100%" height="100%" viewBox="0 0 ${pWidth} ${pHeight}" style="display:block; overflow:hidden;"><g transform="translate(${pWidth/2} ${pHeight/2}) rotate(${angle})">${gridPaths}</g></svg>`;
+        } else {
+          let gridPaths = "";
+          if (pWarp > 0) {
+            for (let x = 0; x <= pWidth + spacing; x += spacing) {
+              let d = `M ${(x + Math.sin(x / 60) * (30 * pWarp)).toFixed(1)} 0`;
+              for (let y = 15; y <= pHeight + 15; y += 15) {
+                const dx = Math.sin(y / 45 + x / 60) * (30 * pWarp);
+                d += ` L ${(x + dx).toFixed(1)} ${y.toFixed(1)}`;
+              }
+              gridPaths += `<path d="${d}" stroke="${pColor}" stroke-width="${lineWidth}" fill="none" opacity="${pOpacity}" />`;
+            }
+            for (let y = 0; y <= pHeight + spacing; y += spacing) {
+              let d = `M 0 ${(y + Math.cos(y / 60) * (30 * pWarp)).toFixed(1)}`;
+              for (let x = 15; x <= pWidth + 15; x += 15) {
+                const dy = Math.cos(x / 45 + y / 60) * (30 * pWarp);
+                d += ` L ${x.toFixed(1)} ${(y + dy).toFixed(1)}`;
+              }
+              gridPaths += `<path d="${d}" stroke="${pColor}" stroke-width="${lineWidth}" fill="none" opacity="${pOpacity}" />`;
+            }
+          } else {
+            for (let x = 0; x <= pWidth + 1; x += spacing) {
+              gridPaths += `<line x1="${x}" y1="0" x2="${x}" y2="${pHeight}" stroke="${pColor}" stroke-width="${lineWidth}" opacity="${pOpacity}" />`;
+            }
+            for (let y = 0; y <= pHeight + 1; y += spacing) {
+              gridPaths += `<line x1="0" y1="${y}" x2="${pWidth}" y2="${y}" stroke="${pColor}" stroke-width="${lineWidth}" opacity="${pOpacity}" />`;
+            }
+          }
+          patternSvg = `<svg width="100%" height="100%" viewBox="0 0 ${pWidth} ${pHeight}" style="display:block; overflow:hidden;">${gridPaths}</svg>`;
+        }
+      } else if (pType === 'dots') {
+        const dotSize = Number(layer.dot_size) || 4;
+        const spacing = Number(layer.dot_spacing) || 24;
+        let dots = "";
+        for (let x = spacing / 2; x < pWidth + spacing; x += spacing) {
+          for (let y = spacing / 2; y < pHeight + spacing; y += spacing) {
+            const dx = pWarp > 0 ? Math.sin(y / 40 + x / 50) * (25 * pWarp) : 0;
+            const dy = pWarp > 0 ? Math.cos(x / 40 + y / 50) * (25 * pWarp) : 0;
+            dots += `<circle cx="${(x + dx).toFixed(1)}" cy="${(y + dy).toFixed(1)}" r="${dotSize / 2}" fill="${pColor}" opacity="${pOpacity}" />`;
+          }
+        }
+        patternSvg = `<svg width="100%" height="100%" viewBox="0 0 ${pWidth} ${pHeight}" style="display:block; overflow:hidden;">${dots}</svg>`;
+      } else if (pType === 'stripes') {
+        const stripeW = Number(layer.stripe_width) || 8;
+        const spacing = Number(layer.stripe_spacing) || 28;
+        const angle = Number(layer.stripe_angle) || 45;
+        const diag = Math.sqrt(pWidth * pWidth + pHeight * pHeight);
+        const step = spacing + stripeW;
+        let stripes = "";
+        if (pWarp > 0) {
+          for (let x = -diag; x <= diag; x += step) {
+            let d = `M ${(x + Math.sin(-diag / 40) * (25 * pWarp)).toFixed(1)} ${-diag}`;
+            for (let y = -diag + 15; y <= diag; y += 15) {
+              const dx = Math.sin(y / 40) * (25 * pWarp);
+              d += ` L ${(x + dx).toFixed(1)} ${y.toFixed(1)}`;
+            }
+            stripes += `<path d="${d}" stroke="${pColor}" stroke-width="${stripeW}" fill="none" opacity="${pOpacity}" />`;
+          }
+        } else {
+          for (let x = -diag; x <= diag; x += step) {
+            stripes += `<line x1="${x}" y1="${-diag}" x2="${x}" y2="${diag}" stroke="${pColor}" stroke-width="${stripeW}" opacity="${pOpacity}" />`;
+          }
+        }
+        patternSvg = `<svg width="100%" height="100%" viewBox="0 0 ${pWidth} ${pHeight}" style="display:block; overflow:hidden;"><g transform="translate(${pWidth/2} ${pHeight/2}) rotate(${angle})">${stripes}</g></svg>`;
+      } else if (pType === 'rays') {
+        const count = Number(layer.ray_count) || 16;
+        const diag = Math.sqrt(pWidth * pWidth + pHeight * pHeight);
+        const stepA = (2 * Math.PI) / count;
+        let rays = "";
+        for (let i = 0; i < count; i += 2) {
+          const a1 = i * stepA;
+          const a2 = a1 + stepA;
+          if (pWarp > 0) {
+            let d = `M ${pWidth/2} ${pHeight/2}`;
+            for (let r = 15; r <= diag; r += 15) {
+              const ca = a1 + (r / diag) * (pWarp * 1.5);
+              d += ` L ${pWidth/2 + r * Math.cos(ca)} ${pHeight/2 + r * Math.sin(ca)}`;
+            }
+            for (let r = diag; r >= 0; r -= 15) {
+              const ca = a2 + (r / diag) * (pWarp * 1.5);
+              d += ` L ${pWidth/2 + r * Math.cos(ca)} ${pHeight/2 + r * Math.sin(ca)}`;
+            }
+            d += " Z";
+            rays += `<path d="${d}" fill="${pColor}" opacity="${pOpacity}" />`;
+          } else {
+            const x1 = pWidth/2 + diag * Math.cos(a1);
+            const y1 = pHeight/2 + diag * Math.sin(a1);
+            const x2 = pWidth/2 + diag * Math.cos(a2);
+            const y2 = pHeight/2 + diag * Math.sin(a2);
+            rays += `<polygon points="${pWidth/2},${pHeight/2} ${x1},${y1} ${x2},${y2}" fill="${pColor}" opacity="${pOpacity}" />`;
+          }
+        }
+        patternSvg = `<svg width="100%" height="100%" viewBox="0 0 ${pWidth} ${pHeight}" style="display:block; overflow:hidden;">${rays}</svg>`;
+      }
+      innerContent = patternSvg;
+      break;
+    }
     case 'shape':
       const sType = layer.shape_type || 'circle';
       const isGradient = layer.fill_type === 'gradient' || (layer.fill_type !== 'solid' && layer.gradient_colors && layer.gradient_colors.length >= 2);
@@ -629,7 +771,7 @@ export function getLayerHtml(layer, index, isSelected) {
         } else if (sType === 'diamond') {
           svgCode = `<polygon points="50,4 96,50 50,96 4,50" fill="${fillValue}" />`;
         } else if (sType === 'heart') {
-          svgCode = `<path d="M 50,30 A 20,20,0,0,1,90,30 A 20,20,0,0,1,50,70 A 20,20,0,0,1,10,30 A 20,20,0,0,1,50,30 Z" transform="translate(0, 10)" fill="${fillValue}" />`;
+          svgCode = `<path d="M 50,25 C 50,10 20,10 20,35 C 20,55 35,72 50,90 C 65,72 80,55 80,35 C 80,10 50,10 50,25 Z" fill="${fillValue}" />`;
         } else if (sType === 'cross') {
           svgCode = `<polygon points="40,4 60,4 60,40 96,40 96,60 60,60 60,96 40,96 40,60 4,60 4,40 40,40" fill="${fillValue}" />`;
         } else if (sType === 'diagonal_split') {
@@ -845,6 +987,7 @@ export function renderLayersList() {
     if (layer.type === 'text') iconName = "type";
     if (layer.type === 'phone') iconName = "smartphone";
     if (layer.type === 'shape') iconName = "shapes";
+    if (layer.type === 'pattern' || layer.type === 'pattern_overlay') iconName = "grid";
     if (layer.type === 'badge') iconName = "tag";
     if (layer.type === 'feature_row') iconName = "list";
     if (layer.type === 'frosted_panel') iconName = "layers";
@@ -947,6 +1090,7 @@ export function selectLayer(index) {
   document.getElementById("section-prop-badge").classList.add("hidden");
   document.getElementById("section-prop-feature-row").classList.add("hidden");
   document.getElementById("section-prop-frosted").classList.add("hidden");
+  document.getElementById("section-prop-pattern")?.classList.add("hidden");
 
   if (index === -2 || (targetLayer && targetLayer.type === 'background')) {
     // Background properties
@@ -998,6 +1142,67 @@ export function selectLayer(index) {
       document.getElementById("slider-val-letter-spacing").value = targetLayer.letter_spacing || 0;
       document.getElementById("label-val-letter-spacing").textContent = targetLayer.letter_spacing || 0;
     } 
+    
+    else if (targetLayer.type === 'pattern' || targetLayer.type === 'pattern_overlay') {
+      document.getElementById("section-pos-dims").classList.remove("hidden");
+      const secPattern = document.getElementById("section-prop-pattern");
+      if (secPattern) {
+        secPattern.classList.remove("hidden");
+        const pType = targetLayer.pattern_type || targetLayer.bg_type || 'grid';
+        document.getElementById("select-pattern-type").value = pType;
+        togglePatternControlGroups(pType);
+
+        const pColor = targetLayer.color || targetLayer.pattern_color || '#1A6B4A';
+        document.getElementById("picker-pattern-color").value = pColor;
+        document.getElementById("text-pattern-color").value = pColor;
+
+        const pOpacity = targetLayer.opacity !== undefined ? targetLayer.opacity : (targetLayer.pattern_opacity !== undefined ? targetLayer.pattern_opacity : 0.25);
+        document.getElementById("slider-pattern-opacity").value = Math.round(pOpacity * 100);
+        document.getElementById("val-pattern-opacity").textContent = `${Math.round(pOpacity * 100)}%`;
+
+        if (document.getElementById("slider-pattern-grid-spacing")) {
+          document.getElementById("slider-pattern-grid-spacing").value = targetLayer.grid_spacing || 32;
+          document.getElementById("val-pattern-grid-spacing").textContent = `${targetLayer.grid_spacing || 32}px`;
+        }
+        if (document.getElementById("slider-pattern-grid-linewidth")) {
+          document.getElementById("slider-pattern-grid-linewidth").value = targetLayer.grid_line_width || 1.5;
+          document.getElementById("val-pattern-grid-linewidth").textContent = `${targetLayer.grid_line_width || 1.5}px`;
+        }
+        if (document.getElementById("slider-pattern-grid-angle")) {
+          document.getElementById("slider-pattern-grid-angle").value = targetLayer.grid_angle || 0;
+          document.getElementById("val-pattern-grid-angle").textContent = `${targetLayer.grid_angle || 0}°`;
+        }
+        if (document.getElementById("slider-pattern-dot-size")) {
+          document.getElementById("slider-pattern-dot-size").value = targetLayer.dot_size || 4;
+          document.getElementById("val-pattern-dot-size").textContent = `${targetLayer.dot_size || 4}px`;
+        }
+        if (document.getElementById("slider-pattern-dot-spacing")) {
+          document.getElementById("slider-pattern-dot-spacing").value = targetLayer.dot_spacing || 24;
+          document.getElementById("val-pattern-dot-spacing").textContent = `${targetLayer.dot_spacing || 24}px`;
+        }
+        if (document.getElementById("slider-pattern-stripe-width")) {
+          document.getElementById("slider-pattern-stripe-width").value = targetLayer.stripe_width || 8;
+          document.getElementById("val-pattern-stripe-width").textContent = `${targetLayer.stripe_width || 8}px`;
+        }
+        if (document.getElementById("slider-pattern-stripe-spacing")) {
+          document.getElementById("slider-pattern-stripe-spacing").value = targetLayer.stripe_spacing || 28;
+          document.getElementById("val-pattern-stripe-spacing").textContent = `${targetLayer.stripe_spacing || 28}px`;
+        }
+        if (document.getElementById("slider-pattern-stripe-angle")) {
+          document.getElementById("slider-pattern-stripe-angle").value = targetLayer.stripe_angle || 45;
+          document.getElementById("val-pattern-stripe-angle").textContent = `${targetLayer.stripe_angle || 45}°`;
+        }
+        if (document.getElementById("slider-pattern-ray-count")) {
+          document.getElementById("slider-pattern-ray-count").value = targetLayer.ray_count || 16;
+          document.getElementById("val-pattern-ray-count").textContent = `${targetLayer.ray_count || 16}`;
+        }
+        if (document.getElementById("slider-pattern-warp")) {
+          const warp = targetLayer.bg_warp !== undefined ? targetLayer.bg_warp : (targetLayer.warp || 0);
+          document.getElementById("slider-pattern-warp").value = Math.round(warp * 100);
+          document.getElementById("val-pattern-warp").textContent = `${Math.round(warp * 100)}%`;
+        }
+      }
+    }
     else if (targetLayer.type === 'shape') {
       document.getElementById("section-prop-shape").classList.remove("hidden");
       
@@ -1149,7 +1354,20 @@ export function deselectLayer() {
   renderPreview();
 }
 
-export function toggleShapeControlGroups(shapeType, targetLayer) {
+export 
+function togglePatternControlGroups(pType) {
+  const gGrid = document.getElementById("group-pattern-grid");
+  const gDots = document.getElementById("group-pattern-dots");
+  const gStripes = document.getElementById("group-pattern-stripes");
+  const gRays = document.getElementById("group-pattern-rays");
+
+  if (gGrid) gGrid.classList.toggle("hidden", pType !== 'grid');
+  if (gDots) gDots.classList.toggle("hidden", pType !== 'dots');
+  if (gStripes) gStripes.classList.toggle("hidden", pType !== 'stripes');
+  if (gRays) gRays.classList.toggle("hidden", pType !== 'rays');
+}
+
+function toggleShapeControlGroups(shapeType, targetLayer) {
   // Select items
   const rGroup = document.querySelector(".id-prop-corner-radius");
   const sGroup = document.querySelector(".id-prop-stroke-width");
@@ -1333,7 +1551,21 @@ export function setupBackgroundPropsForm(layer) {
 export function addLayer(type) {
   let newLayer = { type, pinning: 'safe' };
   
-  if (type === 'text') {
+  if (type === 'pattern' || type === 'pattern_overlay') {
+    newLayer.pattern_type = "grid";
+    newLayer.color = "#1A6B4A";
+    newLayer.opacity = 0.25;
+    newLayer.grid_spacing = 32;
+    newLayer.grid_line_width = 1.5;
+    newLayer.grid_angle = 0;
+    newLayer.bg_warp = 0;
+    newLayer.x = 0;
+    newLayer.y = 0;
+    newLayer.width = 1.0;
+    newLayer.height = 1.0;
+    newLayer.pinning = 'bleed';
+  } 
+  else if (type === 'text') {
     newLayer.content = "New Heading Text";
     newLayer.x = 0.1;
     newLayer.y = 0.25;

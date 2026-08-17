@@ -91,6 +91,7 @@
           <div class="sidebar-section">
             <h3 class="section-title">Add Element</h3>
             <div class="add-elements-grid">
+              <button class="add-btn" data-type="pattern"><i data-lucide="grid"></i> Pattern Overlay</button>
               <button class="add-btn" data-type="text"><i data-lucide="type"></i> Text</button>
               <button class="add-btn" data-type="shape"><i data-lucide="shapes"></i> Shape</button>
               <button class="add-btn" data-type="phone"><i data-lucide="smartphone"></i> Phone Mockup</button>
@@ -290,6 +291,123 @@
                   <input type="color" id="picker-bg-solid" value="#FAF9F6">
                   <input type="text" id="text-bg-solid" value="#FAF9F6" placeholder="#FFFFFF">
                 </div>
+
+            <!-- Pattern Overlay Config -->
+            <div class="properties-section hidden" id="section-prop-pattern">
+              <h5 class="prop-section-title">Pattern Config</h5>
+              <div class="form-group">
+                <label for="select-pattern-type">Pattern Type</label>
+                <select id="select-pattern-type">
+                  <option value="grid">Grid</option>
+                  <option value="dots">Dots</option>
+                  <option value="stripes">Stripes</option>
+                  <option value="rays">Sunburst Rays</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Pattern Color</label>
+                <div class="color-input-group">
+                  <input type="color" id="picker-pattern-color" value="#1A6B4A">
+                  <input type="text" id="text-pattern-color" value="#1A6B4A" class="hex-text-input">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="slider-header">
+                  <label for="slider-pattern-opacity">Opacity</label>
+                  <span class="slider-val" id="val-pattern-opacity">25%</span>
+                </div>
+                <input type="range" id="slider-pattern-opacity" min="5" max="100" value="25">
+              </div>
+
+              <!-- Grid Group -->
+              <div id="group-pattern-grid">
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-grid-spacing">Grid Spacing</label>
+                    <span class="slider-val" id="val-pattern-grid-spacing">32px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-grid-spacing" min="10" max="100" value="32">
+                </div>
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-grid-linewidth">Line Width</label>
+                    <span class="slider-val" id="val-pattern-grid-linewidth">1.5px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-grid-linewidth" min="1" max="10" step="0.5" value="1.5">
+                </div>
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-grid-angle">Grid Angle</label>
+                    <span class="slider-val" id="val-pattern-grid-angle">0°</span>
+                  </div>
+                  <input type="range" id="slider-pattern-grid-angle" min="0" max="180" value="0">
+                </div>
+              </div>
+
+              <!-- Dots Group -->
+              <div id="group-pattern-dots" class="hidden">
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-dot-size">Dot Size</label>
+                    <span class="slider-val" id="val-pattern-dot-size">4px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-dot-size" min="1" max="20" value="4">
+                </div>
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-dot-spacing">Dot Spacing</label>
+                    <span class="slider-val" id="val-pattern-dot-spacing">24px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-dot-spacing" min="10" max="80" value="24">
+                </div>
+              </div>
+
+              <!-- Stripes Group -->
+              <div id="group-pattern-stripes" class="hidden">
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-stripe-width">Stripe Width</label>
+                    <span class="slider-val" id="val-pattern-stripe-width">8px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-stripe-width" min="2" max="40" value="8">
+                </div>
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-stripe-spacing">Stripe Spacing</label>
+                    <span class="slider-val" id="val-pattern-stripe-spacing">28px</span>
+                  </div>
+                  <input type="range" id="slider-pattern-stripe-spacing" min="8" max="80" value="28">
+                </div>
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-stripe-angle">Stripe Angle</label>
+                    <span class="slider-val" id="val-pattern-stripe-angle">45°</span>
+                  </div>
+                  <input type="range" id="slider-pattern-stripe-angle" min="0" max="180" value="45">
+                </div>
+              </div>
+
+              <!-- Rays Group -->
+              <div id="group-pattern-rays" class="hidden">
+                <div class="form-group">
+                  <div class="slider-header">
+                    <label for="slider-pattern-ray-count">Ray Count</label>
+                    <span class="slider-val" id="val-pattern-ray-count">16</span>
+                  </div>
+                  <input type="range" id="slider-pattern-ray-count" min="6" max="36" step="2" value="16">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="slider-header">
+                  <label for="slider-pattern-warp">Warp Distortion</label>
+                  <span class="slider-val" id="val-pattern-warp">0%</span>
+                </div>
+                <input type="range" id="slider-pattern-warp" min="0" max="100" value="0">
+              </div>
+            </div>
               </div>
 
               <!-- Gradient colors -->
